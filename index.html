@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>알록달록 패턴 탐험대 - 컴퓨팅 사고력 놀이</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts (Jua, Gaegu, Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti for celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Jua', 'Noto Sans KR', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-gaegu {
+      font-family: 'Gaegu', cursive;
+    }
+    /* 팝업 및 통통 튀는 애니메이션 */
+    @keyframes bounce-card {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-bounce-gentle {
+      animation: bounce-card 2.5s infinite ease-in-out;
+    }
+    .pop-in {
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pulse-target {
+      animation: pulseBorder 1.5s infinite;
+    }
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+      50% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+    }
+  </style>
+</head>
+<body class="bg-amber-50 min-h-screen text-slate-800 flex flex-col justify-between selection:bg-amber-200">
+
+  <!-- 상단 네비게이션 & 헤더 -->
+  <header class="bg-white/90 backdrop-blur-md shadow-md sticky top-0 z-40 border-b-4 border-amber-300">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('quiz')">
+        <div class="w-12 h-12 bg-amber-400 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+          <span class="text-3xl">🧩</span>
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl text-amber-600 tracking-wide font-black">패턴 탐험대</h1>
+          <p class="text-xs sm:text-sm text-slate-500 font-sans font-bold">컴퓨팅 사고력: 규칙 찾기 놀이터</p>
+        </div>
+      </div>
+
+      <!-- 모드 전환 탭 및 음소거 -->
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <div class="bg-amber-100 p-1.5 rounded-2xl flex space-x-1 border border-amber-200">
+          <button id="tab-btn-quiz" onclick="switchTab('quiz')" 
+                  class="px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition bg-amber-500 text-white shadow-sm flex items-center space-x-1">
+            <span>🎮</span><span>문제 풀기</span>
+          </button>
+          <button id="tab-btn-maker" onclick="switchTab('maker')" 
+                  class="px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition text-amber-800 hover:bg-amber-200/70 flex items-center space-x-1">
+            <span>🎨</span><span>직접 만들기</span>
+          </button>
+        </div>
+
+        <!-- 사운드 토글 버튼 -->
+        <button id="sound-btn" onclick="toggleSound()" class="p-2.5 rounded-2xl bg-white border-2 border-amber-200 text-amber-600 shadow-sm hover:bg-amber-100 transition" title="소리 켜기/끄기">
+          <i data-lucide="volume-2" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="max-w-5xl w-full mx-auto p-4 sm:p-6 flex-1 flex flex-col justify-center">
+
+    <!-- [TAB 1: 퀴즈 모드] -->
+    <section id="section-quiz" class="space-y-6">
+      
+      <!-- 상단 상태바: 단계, 점수, 하트, 힌트 -->
+      <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-lg border-4 border-amber-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <span class="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-sm sm:text-base border border-amber-300" id="level-badge">
+            1단계: 모양 규칙
+          </span>
+          <span class="text-xs sm:text-sm font-sans font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg" id="round-indicator">
+            문제 1 / 5
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <!-- 점수 배지 -->
+          <div class="flex items-center space-x-1.5 bg-yellow-50 px-3 py-1.5 rounded-2xl border border-yellow-200">
+            <span class="text-xl">⭐</span>
+            <span class="text-lg font-bold text-amber-700" id="score-text">0점</span>
+          </div>
+
+          <!-- 별(연속 정답 스트릭) -->
+          <div class="flex items-center space-x-1" id="streak-container" title="연속 정답!">
+            <span class="text-xl">🔥</span>
+            <span class="font-bold text-orange-500 text-sm" id="streak-count">0</span>
+          </div>
+
+          <!-- 힌트 버튼 -->
+          <button onclick="useHint()" class="flex items-center space-x-1 px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-2xl border border-sky-300 font-bold text-sm transition">
+            <span>💡</span>
+            <span>힌트보기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 문제 카드 영역 -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-amber-300 text-center relative overflow-hidden">
+        
+        <!-- 난이도 선택 버튼들 -->
+        <div class="flex justify-center flex-wrap gap-2 mb-6">
+          <button onclick="setLevel(1)" class="level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-amber-500 text-white border-amber-500" data-level="1">
+            🌱 1단계 (AB 패턴)
+          </button>
+          <button onclick="setLevel(2)" class="level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-slate-100 text-slate-600 border-slate-200 hover:bg-amber-100" data-level="2">
+            🌿 2단계 (AAB/ABC)
+          </button>
+          <button onclick="setLevel(3)" class="level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-slate-100 text-slate-600 border-slate-200 hover:bg-amber-100" data-level="3">
+            🌳 3단계 (숫자·크기)
+          </button>
+          <button onclick="setLevel(4)" class="level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-slate-100 text-slate-600 border-slate-200 hover:bg-amber-100" data-level="4">
+            🚀 4단계 (복합 도전)
+          </button>
+        </div>
+
+        <!-- 문제 안내문 -->
+        <div class="mb-6">
+          <h2 class="text-xl sm:text-2xl font-black text-slate-800 mb-1" id="question-title">
+            물음표(?) 자리에 들어갈 알맞은 친구는 누구일까요?
+          </h2>
+          <p class="text-slate-500 text-sm sm:text-base font-sans" id="question-desc">
+            앞뒤에 있는 친구들의 반복되는 순서를 잘 관찰해보세요!
+          </p>
+        </div>
+
+        <!-- 패턴 트레인 (패턴 나열 컨테이너) -->
+        <div class="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 sm:p-6 rounded-3xl border-2 border-dashed border-amber-300 inline-flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-full shadow-inner mb-6" id="pattern-display">
+          <!-- JS에서 동적으로 채워집니다 -->
+        </div>
+
+        <!-- 힌트 박스 (토글) -->
+        <div id="hint-box" class="hidden max-w-md mx-auto mb-6 p-4 bg-sky-50 border-2 border-sky-300 rounded-2xl text-sky-800 text-sm sm:text-base font-sans font-medium pop-in">
+          💡 <span id="hint-text">규칙을 찾아보세요!</span>
+        </div>
+
+        <!-- 보기 (선택지) 영역 -->
+        <div>
+          <p class="text-sm font-bold text-slate-400 mb-3">👇 아래에서 정답을 골라 콕 눌러주세요!</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-xl mx-auto" id="options-container">
+            <!-- JS에서 동적으로 생성됩니다 -->
+          </div>
+        </div>
+
+        <!-- 피드백 메시지 바 -->
+        <div id="feedback-message" class="min-h-[48px] mt-6 flex items-center justify-center text-lg sm:text-xl font-bold">
+          <!-- 정답/오답 격려 텍스트 출력 -->
+        </div>
+
+      </div>
+
+      <!-- 하단 컴퓨터 과학 개념 팁 카드 -->
+      <div class="bg-amber-100/70 border border-amber-200 rounded-2xl p-4 flex items-start space-x-3">
+        <div class="text-2xl mt-0.5">🤖</div>
+        <div>
+          <h4 class="font-bold text-amber-900 text-sm sm:text-base">패턴 인식이란 무엇일까요?</h4>
+          <p class="text-xs sm:text-sm text-amber-800/90 font-sans mt-0.5 leading-relaxed">
+            컴퓨터가 복잡한 문제를 해결할 때 가장 먼저 하는 일은 <strong>"반복되는 규칙과 모양"</strong>을 찾는 것이에요. 규칙을 발견하면 앞으로 어떤 일이 일어날지 미리 알 수 있답니다!
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- [TAB 2: 나만의 패턴 만들기 (메이커 모드)] -->
+    <section id="section-maker" class="hidden space-y-6">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-amber-300">
+        <div class="text-center max-w-xl mx-auto mb-6">
+          <span class="bg-purple-100 text-purple-700 font-bold px-3.5 py-1 rounded-full text-sm border border-purple-200">
+            꼬마 프로그래머 공작소
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2 mb-1">
+            나만의 규칙 패턴 만들기!
+          </h2>
+          <p class="text-slate-500 font-sans text-sm sm:text-base">
+            원하는 아이템들을 클릭해 나만의 규칙(예: 사과-바나나-사과-바나나)을 완성해보세요.
+          </p>
+        </div>
+
+        <!-- 패턴 조작 팔레트 -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-600">아이템을 골라 트랙에 넣어보세요:</h3>
+            <button onclick="clearMakerPattern()" class="text-xs font-sans text-rose-500 hover:text-rose-700 flex items-center space-x-1 underline">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>모두 지우기</span>
+            </button>
+          </div>
+          
+          <div class="flex flex-wrap gap-2.5 sm:gap-3 p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl justify-center" id="maker-palette">
+            <!-- 팔레트 아이템들 -->
+          </div>
+        </div>
+
+        <!-- 내가 만든 패턴 기차 -->
+        <div class="mb-6">
+          <h3 class="text-sm font-bold text-slate-600 mb-2">내가 만든 패턴 트랙:</h3>
+          <div id="maker-track" class="min-h-[100px] p-4 bg-amber-50/70 border-3 border-dashed border-amber-300 rounded-2xl flex flex-wrap items-center justify-start gap-3 overflow-x-auto">
+            <span id="maker-placeholder" class="text-slate-400 font-sans text-sm w-full text-center py-6">
+              위의 귀여운 아이템을 클릭하면 여기에 차례대로 줄을 서요!
+            </span>
+          </div>
+        </div>
+
+        <!-- 패턴 분석 AI 비서 -->
+        <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">🤖</span>
+              <h4 class="font-bold text-indigo-900 text-base sm:text-lg">컴퓨터 비서의 패턴 분석</h4>
+            </div>
+            <button onclick="analyzeMakerPattern()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow transition active:scale-95">
+              규칙 분석하기 ✨
+            </button>
+          </div>
+          <p id="maker-analysis-text" class="text-sm sm:text-base text-indigo-800 font-sans leading-relaxed">
+            아이템을 4개 이상 넣고 [규칙 분석하기] 버튼을 누르면 컴퓨터가 규칙을 찾아내요!
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 단계 클리어 축하 모달 팝업 -->
+  <div id="level-clear-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-amber-400 text-center pop-in relative">
+      <div class="text-6xl mb-3 animate-bounce">🏆</div>
+      <h3 class="text-2xl sm:text-3xl font-black text-amber-600 mb-2" id="clear-modal-title">1단계 클리어!</h3>
+      <p class="text-slate-600 text-sm sm:text-base font-sans font-medium mb-5" id="clear-modal-desc">
+        규칙을 모두 찾아냈어요!<br>다음 단계로 넘어가서 더 신나는 규칙을 탐험해볼까요?
+      </p>
+      
+      <div class="bg-amber-50 rounded-2xl p-3 border border-amber-200 mb-6 flex justify-around items-center">
+        <div>
+          <span class="text-xs text-slate-400 block font-sans">연속 정답</span>
+          <span class="text-lg font-black text-amber-600">4연속 정답! 🔥</span>
+        </div>
+        <div class="h-8 w-px bg-amber-200"></div>
+        <div>
+          <span class="text-xs text-slate-400 block font-sans">획득 보너스</span>
+          <span class="text-lg font-black text-amber-600">+50점 ⭐</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2.5">
+        <button id="next-level-btn" onclick="proceedToNextLevel()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-lg rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-2">
+          <span>다음 단계 도전하기!</span>
+          <span id="countdown-timer" class="text-xs font-normal opacity-90">(3초 후 자동 이동)</span>
+        </button>
+        <button onclick="closeLevelModal(false)" class="text-sm font-sans text-slate-400 hover:text-slate-600 py-1">
+          현재 단계 다시 풀기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 푸터 -->
+  <footer class="bg-white/80 border-t border-amber-200 py-3 text-center text-xs text-slate-400 font-sans">
+    초등학교 소프트웨어(SW) & 인공지능(AI) 기초 교육 • 컴퓨팅 사고력(Computational Thinking) 패턴 찾기
+  </footer>
+
+  <!-- 효과음 재생용 Web Audio API 스크립트 -->
+  <script>
+    // Audio Context (사용자 상호작용 후 재생)
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('sound-btn');
+      if (soundEnabled) {
+        btn.innerHTML = `<i data-lucide="volume-2" class="w-5 h-5"></i>`;
+        btn.classList.remove('text-slate-400', 'bg-slate-100');
+        btn.classList.add('text-amber-600', 'bg-white');
+        playSound('click');
+      } else {
+        btn.innerHTML = `<i data-lucide="volume-x" class="w-5 h-5"></i>`;
+        btn.classList.remove('text-amber-600', 'bg-white');
+        btn.classList.add('text-slate-400', 'bg-slate-100');
+      }
+      lucide.createIcons();
+    }
+
+    // 신디사이저로 생성하는 아기자기한 효과음
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        if (type === 'correct') {
+          // 딩동댕 밝은 상승음 (C5 -> E5 -> G5 -> C6)
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.25);
+          });
+        } else if (type === 'wrong') {
+          // 부드러운 땡 소리 (저음 하강음)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(130, now + 0.25);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'click') {
+          // 뽁! 하는 팝 사운드
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'levelUp') {
+          // 팡파레 효과음
+          const freqs = [440, 554, 659, 880];
+          freqs.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(f, now + i * 0.1);
+            gain.gain.setValueAtTime(0.1, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.3);
+          });
+        }
+      } catch (e) {
+        // 무음 대응
+      }
+    }
+  </script>
+
+  <!-- 메인 게임 로직 및 데이터 -->
+  <script>
+    // ----------------------------
+    // 1. 문제 데이터베이스 (초등 저학년 눈높이 맞춤)
+    // ----------------------------
+    const QUESTION_BANK = {
+      1: [ // 1단계: 단순 2개 교대 패턴 (AB, AB, AB)
+        {
+          title: "과일들이 번갈아 나와요!",
+          hint: "사과 다음에는 항상 바나나가 나와요!",
+          sequence: [
+            { type: 'emoji', val: '🍎', label: '사과' },
+            { type: 'emoji', val: '🍌', label: '바나나' },
+            { type: 'emoji', val: '🍎', label: '사과' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'emoji', val: '🍎', label: '사과' },
+            { type: 'emoji', val: '🍌', label: '바나나' }
+          ],
+          correct: { type: 'emoji', val: '🍌', label: '바나나' },
+          options: [
+            { type: 'emoji', val: '🍌', label: '바나나' },
+            { type: 'emoji', val: '🍎', label: '사과' },
+            { type: 'emoji', val: '🍇', label: '포도' },
+            { type: 'emoji', val: '🍓', label: '딸기' }
+          ]
+        },
+        {
+          title: "도형 친구들의 짝꿍 찾기",
+          hint: "동그라미와 네모가 사이좋게 번갈아 서 있어요.",
+          sequence: [
+            { type: 'emoji', val: '🔴', label: '빨간 원' },
+            { type: 'emoji', val: '🟦', label: '파란 네모' },
+            { type: 'emoji', val: '🔴', label: '빨간 원' },
+            { type: 'emoji', val: '🟦', label: '파란 네모' },
+            { type: 'blank', targetIndex: 4 },
+            { type: 'emoji', val: '🟦', label: '파란 네모' }
+          ],
+          correct: { type: 'emoji', val: '🔴', label: '빨간 원' },
+          options: [
+            { type: 'emoji', val: '🟦', label: '파란 네모' },
+            { type: 'emoji', val: '⭐', label: '노란 별' },
+            { type: 'emoji', val: '🔴', label: '빨간 원' },
+            { type: 'emoji', val: '🔺', label: '세모' }
+          ]
+        },
+        {
+          title: "귀여운 동물 친구들의 줄서기",
+          hint: "야옹이와 멍멍이가 한 번씩 번갈아 나와요.",
+          sequence: [
+            { type: 'emoji', val: '🐱', label: '고양이' },
+            { type: 'emoji', val: '🐶', label: '강아지' },
+            { type: 'blank', targetIndex: 2 },
+            { type: 'emoji', val: '🐶', label: '강아지' },
+            { type: 'emoji', val: '🐱', label: '고양이' },
+            { type: 'emoji', val: '🐶', label: '강아지' }
+          ],
+          correct: { type: 'emoji', val: '🐱', label: '고양이' },
+          options: [
+            { type: 'emoji', val: '🐶', label: '강아지' },
+            { type: 'emoji', val: '🐱', label: '고양이' },
+            { type: 'emoji', val: '🐰', label: '토끼' },
+            { type: 'emoji', val: '🐻', label: '곰' }
+          ]
+        },
+        {
+          title: "낮과 밤의 규칙",
+          hint: "해님 다음엔 달님, 달님 다음엔 다시 해님!",
+          sequence: [
+            { type: 'emoji', val: '☀️', label: '해' },
+            { type: 'emoji', val: '🌙', label: '달' },
+            { type: 'emoji', val: '☀️', label: '해' },
+            { type: 'emoji', val: '🌙', label: '달' },
+            { type: 'emoji', val: '☀️', label: '해' },
+            { type: 'blank', targetIndex: 5 }
+          ],
+          correct: { type: 'emoji', val: '🌙', label: '달' },
+          options: [
+            { type: 'emoji', val: '☀️', label: '해' },
+            { type: 'emoji', val: '☁️', label: '구름' },
+            { type: 'emoji', val: '🌙', label: '달' },
+            { type: 'emoji', val: '🌈', label: '무지개' }
+          ]
+        }
+      ],
+
+      2: [ // 2단계: 3개 패턴 (ABC 또는 AAB 패턴)
+        {
+          title: "삼총사 과일 규칙 (ABC)",
+          hint: "포도 ➔ 수박 ➔ 딸기 순서가 계속 반복돼요!",
+          sequence: [
+            { type: 'emoji', val: '🍇', label: '포도' },
+            { type: 'emoji', val: '🍉', label: '수박' },
+            { type: 'emoji', val: '🍓', label: '딸기' },
+            { type: 'emoji', val: '🍇', label: '포도' },
+            { type: 'blank', targetIndex: 4 },
+            { type: 'emoji', val: '🍓', label: '딸기' }
+          ],
+          correct: { type: 'emoji', val: '🍉', label: '수박' },
+          options: [
+            { type: 'emoji', val: '🍇', label: '포도' },
+            { type: 'emoji', val: '🍉', label: '수박' },
+            { type: 'emoji', val: '🍓', label: '딸기' },
+            { type: 'emoji', val: '🍋', label: '레몬' }
+          ]
+        },
+        {
+          title: "하트와 별의 비밀 규칙 (AAB)",
+          hint: "하트가 두 번 나온 뒤에 별이 한 번 나와요!",
+          sequence: [
+            { type: 'emoji', val: '💖', label: '하트' },
+            { type: 'emoji', val: '💖', label: '하트' },
+            { type: 'emoji', val: '⭐', label: '별' },
+            { type: 'emoji', val: '💖', label: '하트' },
+            { type: 'blank', targetIndex: 4 },
+            { type: 'emoji', val: '⭐', label: '별' }
+          ],
+          correct: { type: 'emoji', val: '💖', label: '하트' },
+          options: [
+            { type: 'emoji', val: '⭐', label: '별' },
+            { type: 'emoji', val: '💖', label: '하트' },
+            { type: 'emoji', val: '✨', label: '반짝이' },
+            { type: 'emoji', val: '🌸', label: '꽃' }
+          ]
+        },
+        {
+          title: "신호등 색깔 순서 (ABC)",
+          hint: "빨강 ➔ 노랑 ➔ 초록 순서를 찾아보세요.",
+          sequence: [
+            { type: 'emoji', val: '🔴', label: '빨강' },
+            { type: 'emoji', val: '🟡', label: '노랑' },
+            { type: 'emoji', val: '🟢', label: '초록' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'emoji', val: '🟡', label: '노랑' },
+            { type: 'emoji', val: '🟢', label: '초록' }
+          ],
+          correct: { type: 'emoji', val: '🔴', label: '빨강' },
+          options: [
+            { type: 'emoji', val: '🟢', label: '초록' },
+            { type: 'emoji', val: '🔴', label: '빨강' },
+            { type: 'emoji', val: '🟡', label: '노랑' },
+            { type: 'emoji', val: '🔵', label: '파랑' }
+          ]
+        },
+        {
+          title: "탈것들의 신나는 행진 (ABB)",
+          hint: "비행기 한 번, 자동차 두 번!",
+          sequence: [
+            { type: 'emoji', val: '✈️', label: '비행기' },
+            { type: 'emoji', val: '🚗', label: '자동차' },
+            { type: 'emoji', val: '🚗', label: '자동차' },
+            { type: 'emoji', val: '✈️', label: '비행기' },
+            { type: 'emoji', val: '🚗', label: '자동차' },
+            { type: 'blank', targetIndex: 5 }
+          ],
+          correct: { type: 'emoji', val: '🚗', label: '자동차' },
+          options: [
+            { type: 'emoji', val: '✈️', label: '비행기' },
+            { type: 'emoji', val: '🚗', label: '자동차' },
+            { type: 'emoji', val: '🚀', label: '로켓' },
+            { type: 'emoji', val: '🚲', label: '자전거' }
+          ]
+        }
+      ],
+
+      3: [ // 3단계: 숫자 및 증가 패턴 (1, 2, 3... 또는 2, 4, 6...)
+        {
+          title: "하나씩 커지는 숫자 계단!",
+          hint: "숫자가 1씩 차례대로 커지고 있어요.",
+          sequence: [
+            { type: 'text', val: '1', label: '숫자 1' },
+            { type: 'text', val: '2', label: '숫자 2' },
+            { type: 'text', val: '3', label: '숫자 3' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'text', val: '5', label: '숫자 5' },
+            { type: 'text', val: '6', label: '숫자 6' }
+          ],
+          correct: { type: 'text', val: '4', label: '숫자 4' },
+          options: [
+            { type: 'text', val: '3', label: '숫자 3' },
+            { type: 'text', val: '4', label: '숫자 4' },
+            { type: 'text', val: '7', label: '숫자 7' },
+            { type: 'text', val: '0', label: '숫자 0' }
+          ]
+        },
+        {
+          title: "두 걸음씩 껑충껑충 뛰어요! (+2)",
+          hint: "숫자가 2씩 퐁당퐁당 커져요. 2, 4, 6... 다음은?",
+          sequence: [
+            { type: 'text', val: '2', label: '숫자 2' },
+            { type: 'text', val: '4', label: '숫자 4' },
+            { type: 'text', val: '6', label: '숫자 6' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'text', val: '10', label: '숫자 10' }
+          ],
+          correct: { type: 'text', val: '8', label: '숫자 8' },
+          options: [
+            { type: 'text', val: '7', label: '숫자 7' },
+            { type: 'text', val: '8', label: '숫자 8' },
+            { type: 'text', val: '9', label: '숫자 9' },
+            { type: 'text', val: '12', label: '숫자 12' }
+          ]
+        },
+        {
+          title: "열 발자국씩 성큼성큼! (+10)",
+          hint: "10, 20, 30... 10씩 쑥쑥 커져요!",
+          sequence: [
+            { type: 'text', val: '10', label: '10' },
+            { type: 'text', val: '20', label: '20' },
+            { type: 'blank', targetIndex: 2 },
+            { type: 'text', val: '40', label: '40' },
+            { type: 'text', val: '50', label: '50' }
+          ],
+          correct: { type: 'text', val: '30', label: '30' },
+          options: [
+            { type: 'text', val: '25', label: '25' },
+            { type: 'text', val: '30', label: '30' },
+            { type: 'text', val: '35', label: '35' },
+            { type: 'text', val: '60', label: '60' }
+          ]
+        },
+        {
+          title: "오렌지가 점점 많아져요! (개수 증가)",
+          hint: "오렌지의 개수가 1개, 2개, 3개... 하나씩 늘어나요!",
+          sequence: [
+            { type: 'text', val: '🍊', label: '1개' },
+            { type: 'text', val: '🍊🍊', label: '2개' },
+            { type: 'text', val: '🍊🍊🍊', label: '3개' },
+            { type: 'blank', targetIndex: 3 }
+          ],
+          correct: { type: 'text', val: '🍊🍊🍊🍊', label: '4개' },
+          options: [
+            { type: 'text', val: '🍊🍊', label: '2개' },
+            { type: 'text', val: '🍊🍊🍊', label: '3개' },
+            { type: 'text', val: '🍊🍊🍊🍊', label: '4개' },
+            { type: 'text', val: '🍊🍊🍊🍊🍊', label: '5개' }
+          ]
+        }
+      ],
+
+      4: [ // 4단계: 복합 도전 (방향, 회문, ABAC 등)
+        {
+          title: "화살표 댄스 파티! (방향 규칙)",
+          hint: "위 ➔ 오른쪽 ➔ 아래 ➔ 왼쪽! 시계방향으로 빙글 돌아요.",
+          sequence: [
+            { type: 'text', val: '⬆️', label: '위' },
+            { type: 'text', val: '➡️', label: '오른쪽' },
+            { type: 'text', val: '⬇️', label: '아래' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'text', val: '⬆️', label: '위' }
+          ],
+          correct: { type: 'text', val: '⬅️', label: '왼쪽' },
+          options: [
+            { type: 'text', val: '⬅️', label: '왼쪽' },
+            { type: 'text', val: '⬆️', label: '위' },
+            { type: 'text', val: '↘️', label: '대각선' },
+            { type: 'text', val: '🔄', label: '회전' }
+          ]
+        },
+        {
+          title: "거울 속의 대칭 규칙 (데칼코마니)",
+          hint: "가운데를 기준으로 양쪽이 거울처럼 똑같아요!",
+          sequence: [
+            { type: 'emoji', val: '🐶', label: '강아지' },
+            { type: 'emoji', val: '🐱', label: '고양이' },
+            { type: 'emoji', val: '🦊', label: '여우' },
+            { type: 'blank', targetIndex: 3 },
+            { type: 'emoji', val: '🐶', label: '강아지' }
+          ],
+          correct: { type: 'emoji', val: '🐱', label: '고양이' },
+          options: [
+            { type: 'emoji', val: '🐱', label: '고양이' },
+            { type: 'emoji', val: '🦊', label: '여우' },
+            { type: 'emoji', val: '🐶', label: '강아지' },
+            { type: 'emoji', val: '🐼', label: '팬더' }
+          ]
+        },
+        {
+          title: "꽃밭의 다이아몬드 규칙 (ABAC)",
+          hint: "노란꽃 ➔ 빨간꽃 ➔ 노란꽃 ➔ 파란꽃! 사이에 항상 노란꽃이 와요.",
+          sequence: [
+            { type: 'emoji', val: '🌻', label: '해바라기' },
+            { type: 'emoji', val: '🌹', label: '장미' },
+            { type: 'emoji', val: '🌻', label: '해바라기' },
+            { type: 'emoji', val: '🪻', label: '보라꽃' },
+            { type: 'blank', targetIndex: 4 },
+            { type: 'emoji', val: '🌹', label: '장미' }
+          ],
+          correct: { type: 'emoji', val: '🌻', label: '해바라기' },
+          options: [
+            { type: 'emoji', val: '🌹', label: '장미' },
+            { type: 'emoji', val: '🌻', label: '해바라기' },
+            { type: 'emoji', val: '🪻', label: '보라꽃' },
+            { type: 'emoji', val: '🌷', label: '튤립' }
+          ]
+        }
+      ]
+    };
+
+    // ----------------------------
+    // 2. 게임 상태 관리
+    // ----------------------------
+    let currentLevel = 1;
+    let currentQuestionIdx = 0;
+    let score = 0;
+    let streak = 0;
+    let currentQuestion = null;
+    let isAnswered = false;
+    let levelAutoTimer = null;
+    let countdownInterval = null;
+
+    // 초기화
+    function initGame() {
+      score = 0;
+      streak = 0;
+      currentQuestionIdx = 0;
+      updateHeaderStats();
+      loadQuestion();
+    }
+
+    // 레벨 전환
+    function setLevel(lvl) {
+      playSound('click');
+      currentLevel = lvl;
+      currentQuestionIdx = 0;
+      
+      // 탭 스타일 갱신
+      document.querySelectorAll('.level-tab-btn').forEach(btn => {
+        const bLvl = parseInt(btn.getAttribute('data-level'));
+        if (bLvl === lvl) {
+          btn.className = "level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-amber-500 text-white border-amber-500 shadow";
+        } else {
+          btn.className = "level-tab-btn px-4 py-1.5 rounded-xl text-sm font-bold border-2 transition active:scale-95 bg-slate-100 text-slate-600 border-slate-200 hover:bg-amber-100";
+        }
+      });
+
+      const names = { 1: '1단계: 모양 규칙', 2: '2단계: 3개 패턴', 3: '3단계: 숫자·개수', 4: '4단계: 복합 도전' };
+      document.getElementById('level-badge').innerText = names[lvl];
+
+      loadQuestion();
+    }
+
+    // 문제 불러오기
+    function loadQuestion() {
+      isAnswered = false;
+      hideHint();
+      clearFeedback();
+
+      const list = QUESTION_BANK[currentLevel];
+      if (currentQuestionIdx >= list.length) {
+        currentQuestionIdx = 0; // 순환
+      }
+      currentQuestion = list[currentQuestionIdx];
+
+      document.getElementById('round-indicator').innerText = `문제 ${currentQuestionIdx + 1} / ${list.length}`;
+      document.getElementById('question-title').innerText = currentQuestion.title;
+      document.getElementById('hint-text').innerText = currentQuestion.hint;
+
+      renderSequence();
+      renderOptions();
+    }
+
+    // 시퀀스 렌더링
+    function renderSequence() {
+      const container = document.getElementById('pattern-display');
+      container.innerHTML = '';
+
+      currentQuestion.sequence.forEach((item, idx) => {
+        const itemBox = document.createElement('div');
+        itemBox.className = "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-md transition transform hover:scale-105 duration-200 select-none";
+
+        if (item.type === 'blank') {
+          itemBox.id = "blank-target-box";
+          itemBox.className += " bg-white border-4 border-amber-400 text-amber-500 border-dashed pulse-target";
+          itemBox.innerHTML = `<span>❓</span>`;
+        } else {
+          itemBox.className += " bg-white border-2 border-amber-200 text-slate-800";
+          itemBox.innerHTML = `<span>${item.val}</span>`;
+        }
+
+        // 아이템 사이에 화살표 큐브 살짝 추가 (마지막 제외)
+        container.appendChild(itemBox);
+        if (idx < currentQuestion.sequence.length - 1) {
+          const arrow = document.createElement('div');
+          arrow.className = "text-amber-300 font-black text-lg select-none hidden sm:block";
+          arrow.innerText = "➔";
+          container.appendChild(arrow);
+        }
+      });
+    }
+
+    // 보기(옵션) 렌더링
+    function renderOptions() {
+      const container = document.getElementById('options-container');
+      container.innerHTML = '';
+
+      // 보기 섞기
+      const shuffled = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+      shuffled.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = "group relative bg-white hover:bg-amber-100 border-3 border-amber-200 hover:border-amber-400 rounded-2xl p-3 sm:p-4 text-center shadow-md active:scale-95 transition-all flex flex-col items-center justify-center min-h-[90px]";
+        
+        btn.innerHTML = `
+          <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition duration-200">${opt.val}</span>
+          <span class="text-xs font-sans text-slate-500 font-bold">${opt.label || ''}</span>
+        `;
+
+        btn.onclick = () => checkAnswer(opt, btn);
+        container.appendChild(btn);
+      });
+    }
+
+    // 정답 체크
+    function checkAnswer(selected, buttonEl) {
+      if (isAnswered) return;
+
+      const feedback = document.getElementById('feedback-message');
+      const blankBox = document.getElementById('blank-target-box');
+
+      if (selected.val === currentQuestion.correct.val) {
+        // 정답!
+        isAnswered = true;
+        playSound('correct');
+        score += 20;
+        streak += 1;
+        updateHeaderStats();
+
+        // 빈칸 채우기
+        if (blankBox) {
+          blankBox.classList.remove('pulse-target', 'border-dashed', 'text-amber-500');
+          blankBox.classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-700', 'pop-in');
+          blankBox.innerHTML = `<span>${selected.val}</span>`;
+        }
+
+        // 버튼 하이라이트
+        buttonEl.classList.remove('hover:bg-amber-100', 'border-amber-200');
+        buttonEl.classList.add('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+
+        // 축하 메시지
+        const cheers = [
+          "🎉 대단해요! 완벽한 패턴을 찾았어요!",
+          "⭐ 멋져요! 컴퓨터 천재 탐험가네요!",
+          "👏 정답이에요! 규칙을 단번에 꿰뚫었군요!",
+          "🚀 딩동댕! 멋진 실력이에요!"
+        ];
+        const cheerText = cheers[Math.floor(Math.random() * cheers.length)];
+        feedback.innerHTML = `<span class="text-emerald-600 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200 pop-in">${cheerText}</span>`;
+
+        // 폭죽 효과
+        triggerConfetti();
+
+        // 단계의 모든 문제를 다 풀었는지 확인 (보통 4문제)
+        const totalInLevel = QUESTION_BANK[currentLevel].length;
+        if (currentQuestionIdx + 1 >= totalInLevel) {
+          // 해당 단계의 모든 문제를 성공적으로 완료했을 때
+          setTimeout(() => {
+            showLevelClearModal();
+          }, 1200);
+        } else {
+          // 다음 문제로 이동
+          setTimeout(() => {
+            currentQuestionIdx++;
+            loadQuestion();
+          }, 1600);
+        }
+
+      } else {
+        // 오답
+        playSound('wrong');
+        streak = 0;
+        updateHeaderStats();
+
+        buttonEl.classList.add('bg-rose-100', 'border-rose-400', 'animate-shake');
+        feedback.innerHTML = `<span class="text-rose-500 bg-rose-50 px-4 py-2 rounded-2xl border border-rose-200 pop-in">아쉬워요! 규칙을 다시 한번 차근차근 살펴볼까요? 🤔</span>`;
+
+        setTimeout(() => {
+          buttonEl.classList.remove('animate-shake');
+        }, 500);
+      }
+    }
+
+    // 단계 클리어 팝업 표시
+    function showLevelClearModal() {
+      playSound('levelUp');
+      triggerConfetti();
+      score += 50; // 스테이지 클리어 보너스 점수
+      updateHeaderStats();
+
+      const modal = document.getElementById('level-clear-modal');
+      const title = document.getElementById('clear-modal-title');
+      const desc = document.getElementById('clear-modal-desc');
+      const btn = document.getElementById('next-level-btn');
+      
+      const levelNames = { 1: '1단계', 2: '2단계', 3: '3단계', 4: '4단계' };
+      title.innerText = `축하합니다! ${levelNames[currentLevel]} 완료! 🏅`;
+
+      if (currentLevel < 4) {
+        desc.innerHTML = `규칙을 모두 완벽하게 해결했어요!<br><strong>${levelNames[currentLevel + 1]}</strong>로 올라가 새로운 도전을 시작해볼까요?`;
+        btn.classList.remove('hidden');
+
+        // 3초 카운트다운 타이머 후 자동 이동
+        let timeLeft = 3;
+        const countdownEl = document.getElementById('countdown-timer');
+        countdownEl.innerText = `(${timeLeft}초 후 자동 이동)`;
+        
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+          timeLeft--;
+          if (timeLeft > 0) {
+            countdownEl.innerText = `(${timeLeft}초 후 자동 이동)`;
+          } else {
+            clearInterval(countdownInterval);
+          }
+        }, 1000);
+
+        clearTimeout(levelAutoTimer);
+        levelAutoTimer = setTimeout(() => {
+          proceedToNextLevel();
+        }, 3200);
+      } else {
+        // 4단계까지 모두 정복했을 때
+        title.innerText = `🎉 패턴 마스터 등극! 🎉`;
+        desc.innerHTML = `모든 단계를 성공적으로 정복했어요!<br>당신은 이제 진정한 <strong>컴퓨팅 사고력 패턴 대장</strong>입니다! 👑`;
+        btn.innerHTML = `<span>1단계부터 다시 정복하기!</span>`;
+        document.getElementById('countdown-timer').innerText = '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    // 다음 단계로 이동 실행
+    function proceedToNextLevel() {
+      closeLevelModal(true);
+      if (currentLevel < 4) {
+        setLevel(currentLevel + 1);
+      } else {
+        setLevel(1);
+      }
+    }
+
+    // 모달 닫기
+    function closeLevelModal(isAdvancing = false) {
+      clearTimeout(levelAutoTimer);
+      clearInterval(countdownInterval);
+      const modal = document.getElementById('level-clear-modal');
+      modal.classList.add('hidden');
+
+      if (!isAdvancing) {
+        // 현재 단계 다시 풀기
+        currentQuestionIdx = 0;
+        loadQuestion();
+      }
+    }
+
+    // 힌트 토글
+    function useHint() {
+      playSound('click');
+      const box = document.getElementById('hint-box');
+      box.classList.toggle('hidden');
+    }
+
+    function hideHint() {
+      const box = document.getElementById('hint-box');
+      box.classList.add('hidden');
+    }
+
+    function clearFeedback() {
+      document.getElementById('feedback-message').innerHTML = '';
+    }
+
+    function updateHeaderStats() {
+      document.getElementById('score-text').innerText = `${score}점`;
+      document.getElementById('streak-count').innerText = streak;
+    }
+
+    // 폭죽 효과
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }
+    }
+
+    // ----------------------------
+    // 3. 탭 전환 기능
+    // ----------------------------
+    function switchTab(tabId) {
+      playSound('click');
+      const quizSection = document.getElementById('section-quiz');
+      const makerSection = document.getElementById('section-maker');
+      const qBtn = document.getElementById('tab-btn-quiz');
+      const mBtn = document.getElementById('tab-btn-maker');
+
+      if (tabId === 'quiz') {
+        quizSection.classList.remove('hidden');
+        makerSection.classList.add('hidden');
+
+        qBtn.className = "px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition bg-amber-500 text-white shadow-sm flex items-center space-x-1";
+        mBtn.className = "px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition text-amber-800 hover:bg-amber-200/70 flex items-center space-x-1";
+      } else {
+        quizSection.classList.add('hidden');
+        makerSection.classList.remove('hidden');
+
+        mBtn.className = "px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition bg-amber-500 text-white shadow-sm flex items-center space-x-1";
+        qBtn.className = "px-3.5 py-1.5 rounded-xl font-bold text-sm sm:text-base transition text-amber-800 hover:bg-amber-200/70 flex items-center space-x-1";
+        initMakerMode();
+      }
+    }
+
+    // ----------------------------
+    // 4. 나만의 패턴 만들기 (메이커 모드) 로직
+    // ----------------------------
+    const MAKER_PALETTE_ITEMS = [
+      { val: '🐶', label: '강아지' },
+      { val: '🐱', label: '고양이' },
+      { val: '🐰', label: '토끼' },
+      { val: '🦁', label: '사자' },
+      { val: '🍎', label: '사과' },
+      { val: '🍌', label: '바나나' },
+      { val: '🍉', label: '수박' },
+      { val: '⭐', label: '별' },
+      { val: '💖', label: '하트' },
+      { val: '💎', label: '보석' },
+      { val: '🚗', label: '자동차' },
+      { val: '🚀', label: '로켓' }
+    ];
+
+    let makerSequence = [];
+
+    function initMakerMode() {
+      const paletteContainer = document.getElementById('maker-palette');
+      if (paletteContainer.children.length === 0) {
+        MAKER_PALETTE_ITEMS.forEach(item => {
+          const btn = document.createElement('button');
+          btn.className = "w-14 h-14 sm:w-16 sm:h-16 bg-white hover:bg-amber-100 border-2 border-slate-200 hover:border-amber-400 rounded-2xl flex flex-col items-center justify-center shadow-sm transition active:scale-90";
+          btn.innerHTML = `<span class="text-2xl sm:text-3xl">${item.val}</span>`;
+          btn.onclick = () => addMakerItem(item);
+          paletteContainer.appendChild(btn);
+        });
+      }
+      renderMakerTrack();
+    }
+
+    function addMakerItem(item) {
+      if (makerSequence.length >= 12) {
+        alert("기차가 가득 찼어요! (최대 12개)");
+        return;
+      }
+      playSound('click');
+      makerSequence.push(item);
+      renderMakerTrack();
+    }
+
+    function removeMakerItem(idx) {
+      playSound('click');
+      makerSequence.splice(idx, 1);
+      renderMakerTrack();
+    }
+
+    function clearMakerPattern() {
+      playSound('click');
+      makerSequence = [];
+      renderMakerTrack();
+      document.getElementById('maker-analysis-text').innerText = "아이템을 4개 이상 넣고 [규칙 분석하기] 버튼을 누르면 컴퓨터가 규칙을 찾아내요!";
+    }
+
+    function renderMakerTrack() {
+      const track = document.getElementById('maker-track');
+      track.innerHTML = '';
+
+      if (makerSequence.length === 0) {
+        track.innerHTML = `<span id="maker-placeholder" class="text-slate-400 font-sans text-sm w-full text-center py-6">위의 귀여운 아이템을 클릭하면 여기에 차례대로 줄을 서요!</span>`;
+        return;
+      }
+
+      makerSequence.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = "relative group w-14 h-14 sm:w-16 sm:h-16 bg-white border-2 border-amber-300 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-md pop-in cursor-pointer";
+        card.title = "클릭하면 삭제할 수 있어요!";
+        card.innerHTML = `
+          <span>${item.val}</span>
+          <div class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">✕</div>
+        `;
+        card.onclick = () => removeMakerItem(idx);
+        track.appendChild(card);
+      });
+    }
+
+    // 컴퓨터 패턴 분석기 알고리즘
+    function analyzeMakerPattern() {
+      playSound('click');
+      const analysisEl = document.getElementById('maker-analysis-text');
+      const n = makerSequence.length;
+
+      if (n < 4) {
+        analysisEl.innerHTML = `<span class="text-rose-600 font-bold">아이템이 너무 적어요!</span> 규칙을 발견하려면 최소 4개 이상의 친구들을 나열해주세요.`;
+        return;
+      }
+
+      const values = makerSequence.map(i => i.val);
+
+      // 주기 L (1부터 n/2까지) 검사
+      let detectedPeriod = 0;
+      for (let p = 1; p <= Math.floor(n / 2); p++) {
+        let isMatch = true;
+        for (let i = p; i < n; i++) {
+          if (values[i] !== values[i % p]) {
+            isMatch = false;
+            break;
+          }
+        }
+        if (isMatch) {
+          detectedPeriod = p;
+          break;
+        }
+      }
+
+      if (detectedPeriod > 0) {
+        playSound('levelUp');
+        triggerConfetti();
+        const unit = values.slice(0, detectedPeriod).join(' ');
+        const nextPredicted = values[n % detectedPeriod];
+
+        analysisEl.innerHTML = `
+          <div class="space-y-1">
+            <p class="text-emerald-700 font-bold text-base">🎉 와우! 명확한 반복 규칙을 찾았습니다!</p>
+            <p>반복되는 핵심 마디: <span class="bg-indigo-100 px-2 py-0.5 rounded-lg font-bold">${unit}</span> (${detectedPeriod}개씩 반복)</p>
+            <p class="text-indigo-900 font-medium">컴퓨터의 예측: 다음에 올 친구는 분명 <span class="text-2xl align-middle">${nextPredicted}</span> 일 거예요!</p>
+          </div>
+        `;
+      } else {
+        playSound('wrong');
+        analysisEl.innerHTML = `
+          <div>
+            <p class="text-amber-700 font-bold">🧐 아직 일정한 반복 규칙이 보이지 않아요!</p>
+            <p class="text-slate-600 text-xs sm:text-sm mt-0.5">예를 들어 <strong>[사과-바나나-사과-바나나]</strong> 또는 <strong>[별-하트-하트-별-하트-하트]</strong> 처럼 똑같은 순서가 되풀이되도록 만들어보세요!</p>
+          </div>
+        `;
+      }
+    }
+
+    // 시작
+    window.onload = function () {
+      initGame();
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
