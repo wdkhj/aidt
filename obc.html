@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>칙칙폭폭! 3칸 기차 순서 맞추기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #fffbeb;
+      user-select: none;
+    }
+    h1, h2, h3, .jua-font {
+      font-family: 'Jua', sans-serif;
+    }
+    @keyframes bounceIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      60% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: bounceIn 0.35s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 text-stone-800">
+
+  <!-- 상단 헤더 및 진행도 -->
+  <header class="w-full max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-3xl p-4 sm:px-6 shadow-md border-4 border-amber-200">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-2xl shadow-sm">
+        <i class="fa-solid fa-train"></i>
+      </div>
+      <div>
+        <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full">꼬마 크리에이터 놀이</span>
+        <h1 class="text-2xl sm:text-3xl text-stone-800 mt-0.5">칙칙폭폭! 3칸 기차 순서 맞추기</h1>
+      </div>
+    </div>
+
+    <!-- 문제 번호 선택 버튼 (1~5번) -->
+    <div class="flex items-center gap-2" id="nav-buttons">
+      <!-- JS로 동적 생성 -->
+    </div>
+  </header>
+
+  <!-- 메인 게임 영역 -->
+  <main class="w-full max-w-4xl flex-grow flex flex-col justify-center my-4 gap-5">
+    
+    <!-- 현재 주제 안내 배너 -->
+    <div class="bg-gradient-to-r from-amber-400 to-orange-400 rounded-3xl p-4 sm:p-5 text-white shadow-md flex items-center justify-between">
+      <div class="flex items-center gap-3 sm:gap-4">
+        <span id="quiz-emoji" class="text-4xl sm:text-5xl bg-white/25 p-3 rounded-2xl">🍰</span>
+        <div>
+          <p id="quiz-step-label" class="text-sm sm:text-base font-bold text-amber-100">문제 1 / 5</p>
+          <h2 id="quiz-topic" class="text-2xl sm:text-3xl tracking-wide">달콤한 딸기 케이크 소개하기</h2>
+        </div>
+      </div>
+      <button onclick="resetCurrentQuiz()" class="bg-white/20 hover:bg-white/30 active:scale-95 transition text-white px-4 py-2.5 rounded-2xl font-bold text-sm sm:text-base flex items-center gap-2 shadow-sm">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span class="hidden sm:inline">다시 놓기</span>
+      </button>
+    </div>
+
+    <!-- 3칸 기차 슬롯 영역 (1번 인사칸 - 2번 자랑칸 - 3번 빠빠이칸) -->
+    <section class="bg-white rounded-3xl p-4 sm:p-6 shadow-md border-4 border-sky-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="jua-font text-lg sm:text-xl text-sky-800">
+          <i class="fa-solid fa-hand-pointer text-sky-500 mr-1"></i>
+          아래의 뒤죽박죽 카드를 눌러 기차 칸에 순서대로 태워주세요!
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 1번 칸: Opening -->
+        <div onclick="removeSlot(0)" id="slot-0" class="cursor-pointer min-h-[155px] rounded-2xl border-4 border-dashed border-amber-300 bg-amber-50/70 p-4 flex flex-col justify-between transition hover:border-amber-400">
+          <div class="flex items-center justify-between">
+            <span class="jua-font text-lg bg-amber-400 text-white px-3 py-1 rounded-xl shadow-sm">1번 인사칸 (O)</span>
+            <span class="text-xs font-bold text-amber-700">귀 쫑긋 인사!</span>
+          </div>
+          <div id="slot-content-0" class="my-auto py-2 text-center text-amber-800/60 font-bold text-base">
+            여기에 첫 번째 이야기를 놓아요
+          </div>
+        </div>
+
+        <!-- 2번 칸: Body -->
+        <div onclick="removeSlot(1)" id="slot-1" class="cursor-pointer min-h-[155px] rounded-2xl border-4 border-dashed border-sky-300 bg-sky-50/70 p-4 flex flex-col justify-between transition hover:border-sky-400">
+          <div class="flex items-center justify-between">
+            <span class="jua-font text-lg bg-sky-500 text-white px-3 py-1 rounded-xl shadow-sm">2번 자랑칸 (B)</span>
+            <span class="text-xs font-bold text-sky-700">멋진 장면 소개!</span>
+          </div>
+          <div id="slot-content-1" class="my-auto py-2 text-center text-sky-800/60 font-bold text-base">
+            여기에 두 번째 이야기를 놓아요
+          </div>
+        </div>
+
+        <!-- 3번 칸: Closing -->
+        <div onclick="removeSlot(2)" id="slot-2" class="cursor-pointer min-h-[155px] rounded-2xl border-4 border-dashed border-pink-300 bg-pink-50/70 p-4 flex flex-col justify-between transition hover:border-pink-400">
+          <div class="flex items-center justify-between">
+            <span class="jua-font text-lg bg-pink-500 text-white px-3 py-1 rounded-xl shadow-sm">3번 빠빠이칸 (C)</span>
+            <span class="text-xs font-bold text-pink-700">신나는 끝인사!</span>
+          </div>
+          <div id="slot-content-2" class="my-auto py-2 text-center text-pink-800/60 font-bold text-base">
+            여기에 세 번째 이야기를 놓아요
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 선택할 뒤죽박죽 카드 영역 -->
+    <section class="bg-stone-100 rounded-3xl p-4 sm:p-6 border-2 border-stone-200">
+      <p class="text-sm font-bold text-stone-500 mb-3">
+        <i class="fa-solid fa-puzzle-piece text-orange-500 mr-1"></i>
+        카드를 누르면 빈 기차 칸으로 쏙! 들어가요. (기차 칸을 다시 누르면 꺼낼 수 있어요)
+      </p>
+      <div id="cards-pool" class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        <!-- JS로 섞인 카드 3개 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 피드백 및 정답 확인 버튼 영역 -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div id="feedback-box" class="w-full sm:flex-1 min-h-[60px] rounded-2xl px-5 py-3 flex items-center gap-3 font-bold text-lg bg-white border-2 border-stone-200 text-stone-600">
+        <i class="fa-solid fa-circle-info text-orange-400 text-2xl"></i>
+        <span id="feedback-text">세 칸을 모두 채운 뒤 '정답 확인!' 버튼을 눌러보세요.</span>
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <button id="check-btn" onclick="checkAnswer()" class="w-full sm:w-auto jua-font text-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition text-white px-8 py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check-circle"></i>
+          <span>정답 확인!</span>
+        </button>
+
+        <button id="next-btn" onclick="nextQuiz()" class="hidden w-full sm:w-auto jua-font text-2xl bg-orange-500 hover:bg-orange-600 active:scale-95 transition text-white px-8 py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 animate-pop">
+          <span>다음 문제로</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 전체 완료 축하 모달 -->
+  <div id="complete-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-400 animate-pop">
+      <div class="text-6xl mb-4">🏆🎉</div>
+      <h2 class="text-3xl sm:text-4xl text-stone-800 mb-3">와아! 최고예요!</h2>
+      <p class="text-lg text-stone-600 font-bold mb-6 leading-relaxed">
+        5개의 3칸 기차를 모두 멋지게 연결했어요!<br />
+        이제 나만의 영상 그림책을 그려볼까요?
+      </p>
+      <button onclick="restartAll()" class="w-full jua-font text-2xl bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl shadow-md transition">
+        처음부터 다시 놀이하기
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 5가지 저학년 맞춤형 O-B-C 예시 데이터
+    const quizzes = [
+      {
+        id: 1,
+        emoji: "🍰",
+        topic: "달콤한 딸기 케이크 만들기",
+        items: [
+          { type: "O", text: "우와! 세상에서 제일 큰 딸기가 숨어있대요! 같이 찾아볼까요?" },
+          { type: "B", text: "생크림을 쓱싹쓱싹 바르고, 빨간 딸기를 콕! 올리면 완성!" },
+          { type: "C", text: "달콤한 딸기 케이크 성공! 다음엔 초코 케이크로 만나요, 안녕~!" }
+        ]
+      },
+      {
+        id: 2,
+        emoji: "🤖",
+        topic: "내 보물 변신 로봇 자랑하기",
+        items: [
+          { type: "O", text: "친구들! 눈 깜짝할 사이에 자동차가 로봇으로 변신한대요!" },
+          { type: "B", text: "팔을 쭉 펴고 머리를 딸깍 올리면, 짜잔! 무적 로봇 등장!" },
+          { type: "C", text: "정말 멋지죠? 재미있게 봤다면 좋아요 꾹! 또 만나요~" }
+        ]
+      },
+      {
+        id: 3,
+        emoji: "🐶",
+        topic: "귀염둥이 강아지 '초코' 소개하기",
+        items: [
+          { type: "O", text: "우리 집에 복슬복슬한 아기 곰돌이가 산다고요? 한번 볼까요?" },
+          { type: "B", text: "간식을 들고 '앉아!' 하면 엉덩이를 쏙 내리는 천재 강아지예요!" },
+          { type: "C", text: "귀여운 우리 초코 보러 또 놀러 오세요! 멍멍, 안녕~!" }
+        ]
+      },
+      {
+        id: 4,
+        emoji: "🪢",
+        topic: "쌩쌩! 줄넘기 왕 도전하기",
+        items: [
+          { type: "O", text: "과연 선생님은 10초 동안 줄넘기를 몇 번이나 넘을 수 있을까요?" },
+          { type: "B", text: "하나, 둘, 셋! 바람을 가르며 쌩쌩 돌아가는 내 발을 보세요!" },
+          { type: "C", text: "와, 신기록 달성! 친구들도 오늘 운동장에서 같이 도전해 봐요!" }
+        ]
+      },
+      {
+        id: 5,
+        emoji: "🏕️",
+        topic: "이불 속 나만의 비밀 아지트",
+        items: [
+          { type: "O", text: "쉿! 아무도 모르는 나만의 비밀 동굴에 여러분을 초대합니다!" },
+          { type: "B", text: "이불 지붕 아래 반짝반짝 전구를 켜고, 좋아하는 인형도 데려왔어요." },
+          { type: "C", text: "포근한 비밀 아지트 구경 끝! 다음 영상에서 또 만나요, 빠빠이!" }
+        ]
+      }
+    ];
+
+    let currentIdx = 0;
+    let solvedStatus = [false, false, false, false, false];
+    let shuffledCards = [];
+    let slots = [null, null, null]; // 각 기차 칸에 들어간 카드 객체
+
+    // 배열 섞기 함수
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      // 만약 우연히 처음부터 O-B-C 순서대로 섞였다면 한 번 더 섞음
+      if (copy[0].type === "O" && copy[1].type === "B" && copy[2].type === "C") {
+        return shuffle(array);
+      }
+      return copy;
+    }
+
+    // 상단 1~5번 네비게이션 렌더링
+    function renderNav() {
+      const nav = document.getElementById("nav-buttons");
+      nav.innerHTML = "";
+      quizzes.forEach((q, idx) => {
+        const btn = document.createElement("button");
+        const isCurrent = idx === currentIdx;
+        const isSolved = solvedStatus[idx];
+        
+        let classes = "w-10 h-10 rounded-full jua-font text-lg transition flex items-center justify-center shadow-sm ";
+        if (isCurrent) {
+          classes += "bg-orange-500 text-white ring-4 ring-orange-200 scale-110";
+        } else if (isSolved) {
+          classes += "bg-emerald-500 text-white";
+        } else {
+          classes += "bg-stone-100 text-stone-500 hover:bg-stone-200";
+        }
+
+        btn.className = classes;
+        btn.innerHTML = isSolved && !isCurrent ? '<i class="fa-solid fa-check text-sm"></i>' : (idx + 1);
+        btn.onclick = () => loadQuiz(idx);
+        nav.appendChild(btn);
+      });
+    }
+
+    // 특정 번호 문제 불러오기
+    function loadQuiz(idx) {
+      currentIdx = idx;
+      const quiz = quizzes[currentIdx];
+      slots = [null, null, null];
+      shuffledCards = shuffle(quiz.items.map((item, i) => ({ ...item, id: i })));
+
+      document.getElementById("quiz-emoji").textContent = quiz.emoji;
+      document.getElementById("quiz-step-label").textContent = `문제 ${currentIdx + 1} / ${quizzes.length}`;
+      document.getElementById("quiz-topic").textContent = quiz.topic;
+
+      document.getElementById("check-btn").classList.remove("hidden");
+      document.getElementById("next-btn").classList.add("hidden");
+      setFeedback("info", "세 칸을 모두 채운 뒤 '정답 확인!' 버튼을 눌러보세요.");
+
+      renderNav();
+      renderSlots();
+      renderCardsPool();
+    }
+
+    // 기차 칸(슬롯) 렌더링
+    function renderSlots() {
+      const placeholders = [
+        "여기에 첫 번째 이야기를 놓아요",
+        "여기에 두 번째 이야기를 놓아요",
+        "여기에 세 번째 이야기를 놓아요"
+      ];
+      const textColors = ["text-amber-800/60", "text-sky-800/60", "text-pink-800/60"];
+
+      for (let i = 0; i < 3; i++) {
+        const slotEl = document.getElementById(`slot-${i}`);
+        const contentEl = document.getElementById(`slot-content-${i}`);
+        const card = slots[i];
+
+        if (card) {
+          slotEl.classList.remove("border-dashed");
+          slotEl.classList.add("border-solid", "bg-white", "shadow-sm");
+          contentEl.className = "my-auto py-2 text-left text-stone-800 font-bold text-base sm:text-lg leading-snug animate-pop";
+          contentEl.innerHTML = `"${card.text}"`;
+        } else {
+          slotEl.classList.add("border-dashed");
+          slotEl.classList.remove("border-solid", "bg-white", "shadow-sm");
+          contentEl.className = `my-auto py-2 text-center font-bold text-base ${textColors[i]}`;
+          contentEl.textContent = placeholders[i];
+        }
+      }
+    }
+
+    // 아래쪽 선택 카드 풀 렌더링
+    function renderCardsPool() {
+      const pool = document.getElementById("cards-pool");
+      pool.innerHTML = "";
+      const labels = ["가", "나", "다"];
+
+      shuffledCards.forEach((card, index) => {
+        const isPlaced = slots.some(s => s && s.id === card.id);
+        const btn = document.createElement("button");
+        btn.disabled = isPlaced;
+
+        if (isPlaced) {
+          btn.className = "rounded-2xl p-4 bg-stone-200/60 border-2 border-dashed border-stone-300 text-stone-400 text-left flex items-center justify-center min-h-[110px] cursor-default";
+          btn.innerHTML = `<span class="jua-font text-lg">기차에 탔어요! 🚂</span>`;
+        } else {
+          btn.className = "rounded-2xl p-4 bg-white hover:bg-orange-50 active:scale-95 transition border-2 border-orange-200 hover:border-orange-400 shadow-sm text-left flex items-start gap-3 min-h-[110px] cursor-pointer";
+          btn.innerHTML = `
+            <span class="jua-font text-lg bg-orange-100 text-orange-600 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+              ${labels[index]}
+            </span>
+            <span class="font-bold text-stone-800 text-base sm:text-lg leading-snug">"${card.text}"</span>
+          `;
+          btn.onclick = () => placeCard(card);
+        }
+        pool.appendChild(btn);
+      });
+    }
+
+    // 카드를 가장 앞의 빈 기차 칸에 넣기
+    function placeCard(card) {
+      const emptyIdx = slots.findIndex(s => s === null);
+      if (emptyIdx === -1) return;
+      slots[emptyIdx] = card;
+      setFeedback("info", "카드를 다 채웠다면 '정답 확인!' 버튼을 눌러주세요.");
+      renderSlots();
+      renderCardsPool();
+    }
+
+    // 기차 칸을 클릭해서 카드 다시 빼기
+    function removeSlot(slotIdx) {
+      if (!slots[slotIdx]) return;
+      slots[slotIdx] = null;
+      document.getElementById("check-btn").classList.remove("hidden");
+      document.getElementById("next-btn").classList.add("hidden");
+      setFeedback("info", "카드를 다시 꺼냈어요. 알맞은 칸에 넣어보세요!");
+      renderSlots();
+      renderCardsPool();
+    }
+
+    // 현재 문제 초기화
+    function resetCurrentQuiz() {
+      slots = [null, null, null];
+      document.getElementById("check-btn").classList.remove("hidden");
+      document.getElementById("next-btn").classList.add("hidden");
+      setFeedback("info", "처음부터 다시 놓아볼까요?");
+      renderSlots();
+      renderCardsPool();
+    }
+
+    // 피드백 메시지 업데이트
+    function setFeedback(type, message) {
+      const box = document.getElementById("feedback-box");
+      const text = document.getElementById("feedback-text");
+      text.textContent = message;
+
+      if (type === "success") {
+        box.className = "w-full sm:flex-1 min-h-[60px] rounded-2xl px-5 py-3 flex items-center gap-3 font-bold text-lg bg-emerald-100 border-2 border-emerald-400 text-emerald-800 animate-pop";
+        box.querySelector("i").className = "fa-solid fa-face-laugh-beam text-emerald-600 text-2xl";
+      } else if (type === "error") {
+        box.className = "w-full sm:flex-1 min-h-[60px] rounded-2xl px-5 py-3 flex items-center gap-3 font-bold text-lg bg-rose-100 border-2 border-rose-400 text-rose-800 animate-pop";
+        box.querySelector("i").className = "fa-solid fa-face-thinking text-rose-600 text-2xl";
+      } else {
+        box.className = "w-full sm:flex-1 min-h-[60px] rounded-2xl px-5 py-3 flex items-center gap-3 font-bold text-lg bg-white border-2 border-stone-200 text-stone-600";
+        box.querySelector("i").className = "fa-solid fa-circle-info text-orange-400 text-2xl";
+      }
+    }
+
+    // 정답 확인
+    function checkAnswer() {
+      if (slots.some(s => s === null)) {
+        setFeedback("error", "아직 빈 기차 칸이 있어요! 3칸을 모두 채워주세요.");
+        return;
+      }
+
+      const isCorrect = slots[0].type === "O" && slots[1].type === "B" && slots[2].type === "C";
+
+      if (isCorrect) {
+        solvedStatus[currentIdx] = true;
+        renderNav();
+        setFeedback("success", "딩동댕! 1번 인사 - 2번 자랑 - 3번 끝인사 순서가 딱 맞아요!");
+        document.getElementById("check-btn").classList.add("hidden");
+        
+        if (solvedStatus.every(Boolean)) {
+          setTimeout(() => {
+            const modal = document.getElementById("complete-modal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+          }, 800);
+        } else {
+          document.getElementById("next-btn").classList.remove("hidden");
+        }
+      } else {
+        setFeedback("error", "어라? 순서가 조금 헷갈렸나 봐요! 칸을 눌러 순서를 바꿔볼까요?");
+      }
+    }
+
+    // 다음 문제 이동
+    function nextQuiz() {
+      const nextUnfinished = solvedStatus.findIndex((solved, idx) => !solved && idx > currentIdx);
+      if (nextUnfinished !== -1) {
+        loadQuiz(nextUnfinished);
+      } else {
+        loadQuiz((currentIdx + 1) % quizzes.length);
+      }
+    }
+
+    // 전체 처음부터 다시하기
+    function restartAll() {
+      solvedStatus = [false, false, false, false, false];
+      const modal = document.getElementById("complete-modal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      loadQuiz(0);
+    }
+
+    // 초기 실행
+    window.onload = () => {
+      loadQuiz(0);
+    };
+  </script>
+</body>
+</html>
