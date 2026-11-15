@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>초1 바른 정보 기기 사용 자세 탐험대</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Jua & Noto Sans KR (초등학생이 읽기 편한 둥글둥글한 폰트) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            background-color: #FFF9EB;
+            color: #333333;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .font-body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 귀여운 입체 버튼 효과 */
+        .btn-kid {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+        }
+        .btn-kid:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        /* 반짝이는 핫스팟 애니메이션 (활동 1) */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.85); opacity: 0.9; }
+            50% { transform: scale(1.15); opacity: 0.4; }
+            100% { transform: scale(0.85); opacity: 0.9; }
+        }
+        .hotspot-pulse {
+            animation: pulse-ring 1.8s infinite ease-in-out;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+
+        /* 체조 애니메이션 (활동 4) */
+        @keyframes stretch-up {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .anim-stretch-up {
+            animation: stretch-up 2s infinite ease-in-out;
+        }
+
+        @keyframes chest-open {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(1.06); }
+        }
+        .anim-chest-open {
+            animation: chest-open 2s infinite ease-in-out;
+            transform-origin: center;
+        }
+
+        @keyframes side-bend {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        .anim-side-bend {
+            animation: side-bend 3s infinite ease-in-out;
+            transform-origin: 50% 80%;
+        }
+
+        @keyframes shrug-shoulders {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+        .anim-shrug {
+            animation: shrug-shoulders 1.6s infinite ease-in-out;
+        }
+
+        /* 말풍선 톡 튀어나오는 애니메이션 */
+        @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* 캔버스 그림판 스타일 */
+        #drawing-canvas {
+            touch-action: none;
+            background-color: #ffffff;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- 상단 헤더 & 5단계 별 모으기 진행 바 -->
+    <header class="bg-white border-b-4 border-amber-200 sticky top-0 z-30 shadow-sm px-3 py-2 sm:px-6 sm:py-3">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <!-- 타이틀 & TTS 소리 끄기/켜기 -->
+            <div class="flex items-center justify-between w-full sm:w-auto gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl sm:text-3xl">🐢</span>
+                    <h1 class="text-xl sm:text-2xl text-amber-800 tracking-wide">바른 자세 탐험대</h1>
+                </div>
+                <button id="toggle-sound-btn" onclick="toggleAudioMute()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-full text-sm sm:text-base flex items-center gap-1 border-2 border-amber-300">
+                    <span id="sound-icon">🔊</span>
+                    <span id="sound-label">소리 켜짐</span>
+                </button>
+            </div>
+
+            <!-- 5단계 스탬프(별) 네비게이션 -->
+            <nav aria-label="학습 단계" class="flex items-center justify-center gap-1.5 sm:gap-3 w-full sm:w-auto">
+                <button onclick="goToStep(1)" id="nav-step-1" class="step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-amber-400 border-amber-500 text-white shadow-sm">
+                    <span class="text-base sm:text-lg" id="star-1">☆</span>
+                    <span class="text-xs sm:text-sm">1.아픈곳</span>
+                </button>
+                <button onclick="goToStep(2)" id="nav-step-2" class="step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-gray-100 border-gray-200 text-gray-500">
+                    <span class="text-base sm:text-lg" id="star-2">☆</span>
+                    <span class="text-xs sm:text-sm">2.바른자세</span>
+                </button>
+                <button onclick="goToStep(3)" id="nav-step-3" class="step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-gray-100 border-gray-200 text-gray-500">
+                    <span class="text-base sm:text-lg" id="star-3">☆</span>
+                    <span class="text-xs sm:text-sm">3.OX퀴즈</span>
+                </button>
+                <button onclick="goToStep(4)" id="nav-step-4" class="step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-gray-100 border-gray-200 text-gray-500">
+                    <span class="text-base sm:text-lg" id="star-4">☆</span>
+                    <span class="text-xs sm:text-sm">4.건강체조</span>
+                </button>
+                <button onclick="goToStep(5)" id="nav-step-5" class="step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-gray-100 border-gray-200 text-gray-500">
+                    <span class="text-base sm:text-lg" id="star-5">☆</span>
+                    <span class="text-xs sm:text-sm">5.나의약속</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 메인 학습 콘텐츠 영역 -->
+    <main class="flex-grow max-w-4xl w-full mx-auto p-3 sm:p-6">
+
+        <!-- ==================== 활동 1: 아픈 곳 찾기 (교과서 86쪽) ==================== -->
+        <section id="step-1" class="step-section bg-white rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-rose-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-rose-500 text-white px-3 py-1 rounded-full text-base sm:text-lg">활동 1</span>
+                    <h2 class="text-xl sm:text-2xl text-rose-700">어디가 아플까요? 콕콕 눌러보아요!</h2>
+                </div>
+                <button onclick="speakText('활동 1. 바닥에 엎드려 태블릿을 보는 친구의 모습이에요. 불편해 보이거나 아파 보이는 곳 네 군데를 손가락으로 콕콕 눌러 찾아보세요!')" class="btn-kid bg-rose-100 hover:bg-rose-200 text-rose-800 px-4 py-2 rounded-2xl text-base sm:text-lg border-2 border-rose-300 flex items-center gap-1">
+                    <span>🔊</span> 문제 듣기
+                </button>
+            </div>
+
+            <p class="text-base sm:text-lg text-gray-600 mb-3 bg-rose-50 p-3 rounded-2xl">
+                💡 반짝이는 동그라미 <span class="text-rose-600 font-bold">4곳</span>을 모두 눌러 아픈 이유를 들어보아요! 
+                (<span id="act1-count" class="text-rose-600 text-xl">0</span> / 4 찾음)
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                <!-- 교과서 86쪽 일러스트 재현 SVG -->
+                <div class="md:col-span-7 relative bg-amber-50 rounded-3xl border-4 border-amber-200 overflow-hidden shadow-inner">
+                    <svg viewBox="0 0 400 300" class="w-full h-auto block">
+                        <!-- 배경 방 풍경 -->
+                        <rect x="0" y="0" width="400" height="220" fill="#FCEEE9"/>
+                        <!-- 창문 -->
+                        <rect x="280" y="20" width="90" height="80" rx="8" fill="#BAE6FD" stroke="#94A3B8" stroke-width="4"/>
+                        <line x1="325" y1="20" x2="325" y2="100" stroke="#94A3B8" stroke-width="3"/>
+                        <!-- 소파 -->
+                        <rect x="20" y="50" width="140" height="90" rx="15" fill="#5EEAD4" stroke="#0F766E" stroke-width="3"/>
+                        <!-- 쿠션과 곰인형 -->
+                        <circle cx="270" cy="140" r="35" fill="#FCA5A5"/>
+                        <circle cx="70" cy="175" r="22" fill="#D97706"/> <!-- 곰 머리 -->
+                        <circle cx="53" cy="158" r="8" fill="#D97706"/>
+                        <circle cx="87" cy="158" r="8" fill="#D97706"/>
+                        <!-- 바닥 매트 -->
+                        <rect x="0" y="200" width="400" height="100" fill="#FEF3C7"/>
+
+                        <!-- 고양이 -->
+                        <ellipse cx="320" cy="175" rx="30" ry="18" fill="#64748B"/>
+                        <circle cx="295" cy="168" r="14" fill="#64748B"/>
+                        <polygon points="285,158 288,145 296,155" fill="#64748B"/>
+                        <polygon points="298,155 305,145 308,158" fill="#64748B"/>
+
+                        <!-- 엎드려 있는 아이 캐릭터 -->
+                        <!-- 다리 (위로 들린 다리) -->
+                        <path d="M 270 235 Q 320 230 335 170" fill="none" stroke="#4338CA" stroke-width="22" stroke-linecap="round"/>
+                        <path d="M 285 242 Q 340 235 352 178" fill="none" stroke="#3730A3" stroke-width="20" stroke-linecap="round"/>
+                        <!-- 양말 -->
+                        <ellipse cx="336" cy="163" rx="8" ry="13" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+                        <ellipse cx="353" cy="171" rx="8" ry="13" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+
+                        <!-- 허리 & 몸통 (노란 티셔츠) -->
+                        <path d="M 165 230 Q 220 245 280 235 L 270 205 Q 215 215 165 200 Z" fill="#FDE047" stroke="#CA8A04" stroke-width="3"/>
+                        
+                        <!-- 팔 (바닥에 짚은 팔) -->
+                        <path d="M 165 215 L 145 250 L 185 255" fill="none" stroke="#FDE047" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="188" cy="255" r="8" fill="#FED7AA"/>
+
+                        <!-- 목 -->
+                        <rect x="148" y="190" width="18" height="20" rx="5" fill="#FED7AA"/>
+
+                        <!-- 머리 (포니테일 여자아이) -->
+                        <circle cx="205" cy="155" r="24" fill="#451A03"/> <!-- 포니테일 -->
+                        <circle cx="192" cy="162" r="7" fill="#38BDF8"/> <!-- 머리끈 -->
+                        <circle cx="150" cy="175" r="38" fill="#FED7AA" stroke="#9A3412" stroke-width="2"/>
+                        <!-- 앞머리 -->
+                        <path d="M 112 175 Q 115 135 155 137 Q 188 140 186 178 Q 175 155 155 162 Q 135 155 112 175 Z" fill="#451A03"/>
+                        <!-- 찡그린 눈과 입 -->
+                        <path d="M 126 173 L 136 177" stroke="#451A03" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="131" cy="182" r="3" fill="#451A03"/>
+                        <path d="M 150 177 L 160 173" stroke="#451A03" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="155" cy="182" r="3" fill="#451A03"/>
+                        <path d="M 136 198 Q 143 192 150 198" fill="none" stroke="#9A3412" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- 발그레 아픈 볼 -->
+                        <circle cx="123" cy="190" r="5" fill="#F87171" opacity="0.6"/>
+                        <circle cx="163" cy="190" r="5" fill="#F87171" opacity="0.6"/>
+
+                        <!-- 태블릿 PC (너무 가까이 있음) -->
+                        <polygon points="75,205 115,212 125,260 85,253" fill="#475569" stroke="#1E293B" stroke-width="3"/>
+                        <polygon points="115,235 135,258 118,260" fill="#64748B"/>
+                        <!-- 눈과 화면 사이 위험 표시 점선 -->
+                        <line x1="105" y1="215" x2="130" y2="185" stroke="#EF4444" stroke-width="3" stroke-dasharray="4,4"/>
+
+                        <!-- 클릭 가능한 핫스팟 4곳 -->
+                        <!-- 1. 눈 -->
+                        <g class="cursor-pointer" onclick="foundPainSpot('eye', 120, 185)">
+                            <circle id="spot-eye-ring" cx="120" cy="185" r="22" fill="#EF4444" opacity="0.35" class="hotspot-pulse"/>
+                            <circle id="spot-eye" cx="120" cy="185" r="14" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+                            <text x="120" y="190" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="bold">!</text>
+                        </g>
+
+                        <!-- 2. 목 -->
+                        <g class="cursor-pointer" onclick="foundPainSpot('neck', 162, 198)">
+                            <circle id="spot-neck-ring" cx="162" cy="198" r="22" fill="#EF4444" opacity="0.35" class="hotspot-pulse"/>
+                            <circle id="spot-neck" cx="162" cy="198" r="14" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+                            <text x="162" y="203" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="bold">!</text>
+                        </g>
+
+                        <!-- 3. 어깨/팔 -->
+                        <g class="cursor-pointer" onclick="foundPainSpot('shoulder', 182, 228)">
+                            <circle id="spot-shoulder-ring" cx="182" cy="228" r="22" fill="#EF4444" opacity="0.35" class="hotspot-pulse"/>
+                            <circle id="spot-shoulder" cx="182" cy="228" r="14" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+                            <text x="182" y="233" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="bold">!</text>
+                        </g>
+
+                        <!-- 4. 허리 -->
+                        <g class="cursor-pointer" onclick="foundPainSpot('back', 240, 222)">
+                            <circle id="spot-back-ring" cx="240" cy="222" r="22" fill="#EF4444" opacity="0.35" class="hotspot-pulse"/>
+                            <circle id="spot-back" cx="240" cy="222" r="14" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
+                            <text x="240" y="227" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="bold">!</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- 우측 설명 및 말풍선 피드백 패널 -->
+                <div class="md:col-span-5 flex flex-col gap-3">
+                    <div id="act1-feedback-box" class="bg-rose-50 border-3 border-rose-300 rounded-3xl p-4 min-h-[160px] flex flex-col justify-center items-center text-center">
+                        <span class="text-4xl mb-2" id="act1-emoji">👈</span>
+                        <h3 class="text-xl text-rose-700 mb-1" id="act1-title">빨간 동그라미를 눌러보세요!</h3>
+                        <p class="text-base sm:text-lg text-gray-700" id="act1-desc">친구의 어느 부위가 아픈지 찾아볼까요?</p>
+                    </div>
+
+                    <!-- 찾은 부위 배지 목록 -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div id="badge-eye" class="bg-gray-100 text-gray-400 p-2.5 rounded-2xl text-center text-base border-2 border-gray-200">👀 눈 (아직)</div>
+                        <div id="badge-neck" class="bg-gray-100 text-gray-400 p-2.5 rounded-2xl text-center text-base border-2 border-gray-200">🦒 목 (아직)</div>
+                        <div id="badge-shoulder" class="bg-gray-100 text-gray-400 p-2.5 rounded-2xl text-center text-base border-2 border-gray-200">💪 어깨 (아직)</div>
+                        <div id="badge-back" class="bg-gray-100 text-gray-400 p-2.5 rounded-2xl text-center text-base border-2 border-gray-200">🦴 허리 (아직)</div>
+                    </div>
+
+                    <!-- 완료 시 나타나는 다음 버튼 -->
+                    <button id="act1-next-btn" onclick="goToStep(2)" class="hidden btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl text-xl mt-2">
+                        참 잘했어요! 다음 활동으로 👉
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 활동 2: 바른 자세 알아보기 (교과서 87쪽) ==================== -->
+        <section id="step-2" class="step-section hidden bg-white rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-sky-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-sky-500 text-white px-3 py-1 rounded-full text-base sm:text-lg">활동 2</span>
+                    <h2 class="text-xl sm:text-2xl text-sky-700">올바른 정보 기기 사용 자세 알아보기</h2>
+                </div>
+                <button onclick="speakText('활동 2. 책상과 의자에 바르게 앉은 친구의 모습이에요. 오른쪽에 있는 네 가지 바른 자세 약속 버튼을 하나씩 눌러 소리로 들어보세요!')" class="btn-kid bg-sky-100 hover:bg-sky-200 text-sky-800 px-4 py-2 rounded-2xl text-base sm:text-lg border-2 border-sky-300 flex items-center gap-1">
+                    <span>🔊</span> 설명 듣기
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                <!-- 교과서 87쪽 바른 자세 일러스트 SVG -->
+                <div class="md:col-span-6 bg-sky-50 rounded-3xl border-4 border-sky-200 overflow-hidden shadow-inner">
+                    <svg viewBox="0 0 360 320" class="w-full h-auto block">
+                        <!-- 배경 벽 & 창문 & 책장 -->
+                        <rect x="0" y="0" width="360" height="260" fill="#F3E8FF"/>
+                        <rect x="20" y="20" width="80" height="110" fill="#BAE6FD" stroke="#94A3B8" stroke-width="3"/>
+                        <rect x="75" y="15" width="35" height="125" fill="#D9F99D"/> <!-- 커튼 -->
+                        <!-- 곰돌이 액자 -->
+                        <rect x="145" y="25" width="55" height="65" fill="#ECFCCB" stroke="#CBD5E1" stroke-width="3"/>
+                        <circle cx="172" cy="52" r="12" fill="#D97706"/>
+                        <circle cx="172" cy="72" r="14" fill="#D97706"/>
+                        <!-- 책장 -->
+                        <rect x="255" y="95" width="90" height="145" fill="#D97706" opacity="0.7"/>
+                        <rect x="265" y="108" width="15" height="35" fill="#60A5FA"/>
+                        <rect x="282" y="108" width="15" height="35" fill="#F472B6"/>
+                        <rect x="299" y="108" width="15" height="35" fill="#34D399"/>
+
+                        <!-- 바닥 러그 -->
+                        <ellipse cx="180" cy="275" rx="150" ry="35" fill="#A7F3D0"/>
+
+                        <!-- 의자 -->
+                        <rect x="225" y="165" width="16" height="80" rx="6" fill="#F59E0B" stroke="#B45309" stroke-width="2"/>
+                        <rect x="175" y="235" width="65" height="14" rx="5" fill="#F59E0B" stroke="#B45309" stroke-width="2"/>
+                        <line x1="185" y1="249" x2="185" y2="295" stroke="#B45309" stroke-width="7" stroke-linecap="round"/>
+                        <line x1="230" y1="249" x2="230" y2="295" stroke="#B45309" stroke-width="7" stroke-linecap="round"/>
+
+                        <!-- 바르게 앉은 아이 캐릭터 -->
+                        <!-- 다리 & 발바닥 -->
+                        <path d="M 215 230 L 160 230 L 160 282" fill="none" stroke="#1E3A8A" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- 양말 신은 발 (바닥에 닿음) -->
+                        <ellipse cx="150" cy="288" rx="16" ry="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+
+                        <!-- 몸통 (보라색 스웨터, 꼿꼿한 허리) -->
+                        <rect x="180" y="160" width="44" height="72" rx="16" fill="#C084FC" stroke="#7E22CE" stroke-width="2"/>
+                        <!-- 하얀 카라 -->
+                        <polygon points="188,160 202,170 216,160" fill="#FFFFFF"/>
+
+                        <!-- 팔 -->
+                        <path d="M 195 175 L 175 205 L 145 205" fill="none" stroke="#C084FC" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="142" cy="205" r="7" fill="#FED7AA"/>
+
+                        <!-- 머리 (단발머리 미소 짓는 여자아이) -->
+                        <path d="M 162 125 Q 162 85 198 85 Q 234 85 234 135 Q 234 155 222 158 L 168 152 Z" fill="#451A03"/>
+                        <circle cx="195" cy="122" r="32" fill="#FED7AA" stroke="#9A3412" stroke-width="2"/>
+                        <!-- 앞머리 -->
+                        <path d="M 163 120 Q 170 90 198 90 Q 225 90 227 120 Q 212 103 195 110 Q 180 103 163 120 Z" fill="#451A03"/>
+                        <!-- 웃는 눈과 입 -->
+                        <circle cx="180" cy="120" r="3" fill="#451A03"/>
+                        <circle cx="202" cy="120" r="3" fill="#451A03"/>
+                        <path d="M 185 133 Q 191 140 197 133" fill="none" stroke="#9A3412" stroke-width="2.5" stroke-linecap="round"/>
+
+                        <!-- 책상 -->
+                        <rect x="30" y="212" width="165" height="14" rx="4" fill="#B45309"/>
+                        <rect x="45" y="226" width="10" height="72" fill="#78350F"/>
+                        <rect x="170" y="226" width="10" height="72" fill="#78350F"/>
+
+                        <!-- 거치대에 세워진 태블릿 -->
+                        <polygon points="75,155 118,162 126,210 83,203" fill="#334155" stroke="#0F172A" stroke-width="3"/>
+                        <polygon points="95,185 75,212 105,212" fill="#64748B"/>
+
+                        <!-- 시선 거리 화살표 (30cm 이상) -->
+                        <line x1="115" y1="150" x2="170" y2="125" stroke="#0284C7" stroke-width="3" stroke-dasharray="5,4"/>
+                        <rect x="115" y="122" width="54" height="20" rx="8" fill="#0284C7"/>
+                        <text x="142" y="136" text-anchor="middle" fill="#FFFFFF" font-size="11">30cm 이상</text>
+
+                        <!-- 하이라이트 표시 원 (버튼 클릭 시 강조) -->
+                        <circle id="hl-back" cx="222" cy="195" r="24" fill="none" stroke="#10B981" stroke-width="5" opacity="0"/>
+                        <circle id="hl-dist" cx="142" cy="135" r="30" fill="none" stroke="#10B981" stroke-width="5" opacity="0"/>
+                        <circle id="hl-eye" cx="100" cy="175" r="28" fill="none" stroke="#10B981" stroke-width="5" opacity="0"/>
+                        <circle id="hl-foot" cx="155" cy="285" r="24" fill="none" stroke="#10B981" stroke-width="5" opacity="0"/>
+                    </svg>
+                </div>
+
+                <!-- 4가지 바른 자세 수칙 버튼 -->
+                <div class="md:col-span-6 flex flex-col gap-3">
+                    <p class="text-base sm:text-lg text-sky-800 bg-sky-100 p-3 rounded-2xl">
+                        👇 아래 4가지 약속을 차례대로 눌러보아요! (<span id="act2-count">0</span> / 4 확인)
+                    </p>
+
+                    <button onclick="checkGoodRule(1, 'back', '첫째, 허리를 쭉 펴고 의자 깊숙이 바르게 앉아요!')" id="rule-btn-1" class="btn-kid text-left p-3.5 rounded-2xl border-3 border-sky-200 bg-white hover:bg-sky-50 flex items-center gap-3">
+                        <span id="rule-icon-1" class="text-2xl">1️⃣</span>
+                        <span class="text-lg sm:text-xl text-gray-800">허리를 쭉 펴고 바르게 앉기</span>
+                    </button>
+
+                    <button onclick="checkGoodRule(2, 'dist', '둘째, 눈과 화면의 거리를 30센티미터 이상 멀리 두어요!')" id="rule-btn-2" class="btn-kid text-left p-3.5 rounded-2xl border-3 border-sky-200 bg-white hover:bg-sky-50 flex items-center gap-3">
+                        <span id="rule-icon-2" class="text-2xl">2️⃣</span>
+                        <span class="text-lg sm:text-xl text-gray-800">눈과 화면 거리를 멀리(30cm 이상) 두기</span>
+                    </button>
+
+                    <button onclick="checkGoodRule(3, 'eye', '셋째, 거치대를 사용해 화면 높이를 눈높이에 맞추어요!')" id="rule-btn-3" class="btn-kid text-left p-3.5 rounded-2xl border-3 border-sky-200 bg-white hover:bg-sky-50 flex items-center gap-3">
+                        <span id="rule-icon-3" class="text-2xl">3️⃣</span>
+                        <span class="text-lg sm:text-xl text-gray-800">거치대로 화면 높이를 눈높이에 맞추기</span>
+                    </button>
+
+                    <button onclick="checkGoodRule(4, 'foot', '넷째, 두 발바닥을 바닥에 바르게 대고 앉아요!')" id="rule-btn-4" class="btn-kid text-left p-3.5 rounded-2xl border-3 border-sky-200 bg-white hover:bg-sky-50 flex items-center gap-3">
+                        <span id="rule-icon-4" class="text-2xl">4️⃣</span>
+                        <span class="text-lg sm:text-xl text-gray-800">두 발바닥을 바닥에 바르게 대기</span>
+                    </button>
+
+                    <button id="act2-next-btn" onclick="goToStep(3)" class="hidden btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-2xl text-xl mt-1">
+                        바른 자세 마스터! 퀴즈 풀러 가기 👉
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 활동 3: O/X 자세 탐정 퀴즈 (교과서 88쪽) ==================== -->
+        <section id="step-3" class="step-section hidden bg-white rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-amber-300">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-500 text-white px-3 py-1 rounded-full text-base sm:text-lg">활동 3</span>
+                    <h2 class="text-xl sm:text-2xl text-amber-800">O / X 바른 자세 탐정 퀴즈</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-base sm:text-lg border border-amber-300">
+                        문제 <span id="quiz-num">1</span> / 4
+                    </span>
+                    <button onclick="speakCurrentQuiz()" class="btn-kid bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-2xl text-base border-2 border-amber-300">
+                        🔊 듣기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 퀴즈 카드 영역 -->
+            <div class="max-w-xl mx-auto flex flex-col items-center">
+                <!-- 상황 일러스트 컨테이너 -->
+                <div id="quiz-illustration" class="w-full max-w-sm bg-amber-50 rounded-3xl border-4 border-amber-200 p-3 mb-4 shadow-inner">
+                    <!-- JS로 4가지 상황 SVG 삽입 -->
+                </div>
+
+                <!-- 상황 설명 텍스트 -->
+                <h3 id="quiz-question" class="text-xl sm:text-2xl text-center text-gray-800 mb-5 px-2">
+                    바닥에 엎드려서 태블릿을 보고 있어요.
+                </h3>
+
+                <!-- O / X 선택 버튼 -->
+                <div id="quiz-choices" class="grid grid-cols-2 gap-4 w-full mb-4">
+                    <button onclick="answerQuiz(true)" class="btn-kid bg-sky-100 hover:bg-sky-200 border-4 border-sky-400 text-sky-800 py-4 rounded-3xl flex flex-col items-center gap-1">
+                        <span class="text-4xl sm:text-5xl">⭕</span>
+                        <span class="text-xl sm:text-2xl">올바른 자세</span>
+                    </button>
+                    <button onclick="answerQuiz(false)" class="btn-kid bg-rose-100 hover:bg-rose-200 border-4 border-rose-400 text-rose-800 py-4 rounded-3xl flex flex-col items-center gap-1">
+                        <span class="text-4xl sm:text-5xl">❌</span>
+                        <span class="text-xl sm:text-2xl">잘못된 자세</span>
+                    </button>
+                </div>
+
+                <!-- 정답/오답 피드백 및 해설 박스 -->
+                <div id="quiz-feedback" class="hidden w-full rounded-3xl p-4 border-4 text-center pop-in">
+                    <div class="text-3xl mb-1" id="quiz-fb-icon">🎉</div>
+                    <h4 class="text-xl sm:text-2xl mb-1" id="quiz-fb-title">정답이에요!</h4>
+                    <p class="text-base sm:text-lg text-gray-700 mb-3" id="quiz-fb-desc">해설 내용</p>
+                    <button id="quiz-next-btn" onclick="nextQuiz()" class="btn-kid bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-2xl text-xl">
+                        다음 문제 👉
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 활동 4: 틈틈이 건강 체조 따라 하기 (교과서 89~90쪽) ==================== -->
+        <section id="step-4" class="step-section hidden bg-white rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-emerald-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-emerald-500 text-white px-3 py-1 rounded-full text-base sm:text-lg">활동 4</span>
+                    <h2 class="text-xl sm:text-2xl text-emerald-700">내 몸을 보호하는 건강 체조 따라 하기</h2>
+                </div>
+                <button onclick="speakText('활동 4. 정보 기기를 사용하는 틈틈이 건강 체조를 따라 해 봅시다. 네 가지 동작의 체조 시작 버튼을 눌러 10초 동안 함께 움직여 보아요!')" class="btn-kid bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-2 rounded-2xl text-base sm:text-lg border-2 border-emerald-300 flex items-center gap-1">
+                    <span>🔊</span> 안내 듣기
+                </button>
+            </div>
+
+            <p class="text-base sm:text-lg text-emerald-800 bg-emerald-50 p-3 rounded-2xl mb-4">
+                🏃‍♂️ 4가지 체조를 모두 따라 하고 참 잘했어요 도장을 모아보세요! (<span id="act4-count">0</span> / 4 완료)
+            </p>
+
+            <!-- 4가지 체조 카드 그리드 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <!-- 동작 1: 하늘 높이 올려보기 -->
+                <div id="ex-card-1" class="bg-emerald-50/60 border-3 border-emerald-200 rounded-3xl p-4 flex flex-col items-center text-center relative">
+                    <span class="bg-emerald-600 text-white px-3 py-0.5 rounded-full text-sm mb-2">동작 ①</span>
+                    <h3 class="text-xl text-emerald-900 mb-2">하늘 높이 올려보기</h3>
+                    <!-- 애니메이션 SVG -->
+                    <div class="w-36 h-36 bg-white rounded-2xl border-2 border-emerald-100 flex items-center justify-center mb-2 overflow-hidden">
+                        <svg viewBox="0 0 120 120" class="w-full h-full">
+                            <!-- 의자 -->
+                            <rect x="42" y="75" width="36" height="8" fill="#D97706"/>
+                            <line x1="46" y1="83" x2="46" y2="110" stroke="#92400E" stroke-width="4"/>
+                            <line x1="74" y1="83" x2="74" y2="110" stroke="#92400E" stroke-width="4"/>
+                            <!-- 다리 -->
+                            <path d="M 60 75 L 40 75 L 40 105" fill="none" stroke="#0284C7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                            <!-- 상체 & 위로 뻗은 팔 -->
+                            <g class="anim-stretch-up">
+                                <rect x="50" y="45" width="20" height="30" rx="8" fill="#FDE047"/>
+                                <circle cx="60" cy="34" r="12" fill="#FED7AA"/>
+                                <path d="M 48 32 Q 60 18 72 32" fill="#451A03"/>
+                                <!-- 하늘로 뻗은 두 팔 -->
+                                <path d="M 50 50 Q 42 25 56 10" fill="none" stroke="#FDE047" stroke-width="7" stroke-linecap="round"/>
+                                <path d="M 70 50 Q 78 25 64 10" fill="none" stroke="#FDE047" stroke-width="7" stroke-linecap="round"/>
+                                <circle cx="60" cy="9" r="5" fill="#FED7AA"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <p class="text-sm sm:text-base text-gray-700 mb-3 flex-grow">
+                        두 손을 깍지 끼고 두 팔을 하늘 위로 쭉 뻗어 기지개를 켜보세요.
+                    </p>
+                    <button id="ex-btn-1" onclick="startExercise(1, '동작 1. 하늘 높이 올려보기! 두 손을 깍지 끼고 하늘 위로 쭉 기지개를 켜세요. 하나, 둘, 셋, 넷, 다섯, 여섯, 일곱, 여덟, 아홉, 열!')" class="btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-2xl text-lg">
+                        ⏱️ 10초 체조 시작
+                    </button>
+                </div>
+
+                <!-- 동작 2: 굽은 등 쫙 펴주기 -->
+                <div id="ex-card-2" class="bg-emerald-50/60 border-3 border-emerald-200 rounded-3xl p-4 flex flex-col items-center text-center relative">
+                    <span class="bg-emerald-600 text-white px-3 py-0.5 rounded-full text-sm mb-2">동작 ②</span>
+                    <h3 class="text-xl text-emerald-900 mb-2">굽은 등 쫙 펴주기</h3>
+                    <div class="w-36 h-36 bg-white rounded-2xl border-2 border-emerald-100 flex items-center justify-center mb-2 overflow-hidden">
+                        <svg viewBox="0 0 120 120" class="w-full h-full">
+                            <rect x="42" y="75" width="36" height="8" fill="#D97706"/>
+                            <line x1="46" y1="83" x2="46" y2="110" stroke="#92400E" stroke-width="4"/>
+                            <line x1="74" y1="83" x2="74" y2="110" stroke="#92400E" stroke-width="4"/>
+                            <path d="M 60 75 L 40 75 L 40 105" fill="none" stroke="#0284C7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                            <g class="anim-chest-open">
+                                <rect x="50" y="45" width="20" height="30" rx="8" fill="#FDE047"/>
+                                <circle cx="58" cy="34" r="12" fill="#FED7AA"/>
+                                <path d="M 46 32 Q 58 18 70 32" fill="#451A03"/>
+                                <!-- 등 뒤로 뻗은 팔 -->
+                                <path d="M 65 52 L 92 70" fill="none" stroke="#FDE047" stroke-width="7" stroke-linecap="round"/>
+                                <circle cx="94" cy="72" r="5" fill="#FED7AA"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <p class="text-sm sm:text-base text-gray-700 mb-3 flex-grow">
+                        등 뒤로 깍지를 끼고 천천히 팔을 뒤로 뻗으면서 가슴을 활짝 펴주세요.
+                    </p>
+                    <button id="ex-btn-2" onclick="startExercise(2, '동작 2. 굽은 등 쫙 펴주기! 등 뒤로 깍지를 끼고 가슴을 활짝 펴주세요. 하나, 둘, 셋, 넷, 다섯, 여섯, 일곱, 여덟, 아홉, 열!')" class="btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-2xl text-lg">
+                        ⏱️ 10초 체조 시작
+                    </button>
+                </div>
+
+                <!-- 동작 3: 옆구리 쭉쭉 늘리기 -->
+                <div id="ex-card-3" class="bg-emerald-50/60 border-3 border-emerald-200 rounded-3xl p-4 flex flex-col items-center text-center relative">
+                    <span class="bg-emerald-600 text-white px-3 py-0.5 rounded-full text-sm mb-2">동작 ③</span>
+                    <h3 class="text-xl text-emerald-900 mb-2">옆구리 쭉쭉 늘리기</h3>
+                    <div class="w-36 h-36 bg-white rounded-2xl border-2 border-emerald-100 flex items-center justify-center mb-2 overflow-hidden">
+                        <svg viewBox="0 0 120 120" class="w-full h-full">
+                            <!-- 다리 -->
+                            <line x1="52" y1="75" x2="50" y2="108" stroke="#64748B" stroke-width="9" stroke-linecap="round"/>
+                            <line x1="68" y1="75" x2="70" y2="108" stroke="#64748B" stroke-width="9" stroke-linecap="round"/>
+                            <!-- 상체 기울이기 -->
+                            <g class="anim-side-bend">
+                                <rect x="48" y="42" width="24" height="34" rx="8" fill="#F97316"/>
+                                <circle cx="60" cy="28" r="12" fill="#FED7AA"/>
+                                <path d="M 48 26 Q 60 14 72 26" fill="#451A03"/>
+                                <!-- 허리에 손 올리기 -->
+                                <path d="M 48 48 L 38 60 L 48 68" fill="none" stroke="#F97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M 72 48 L 82 60 L 72 68" fill="none" stroke="#F97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <p class="text-sm sm:text-base text-gray-700 mb-3 flex-grow">
+                        자리에서 일어나 허리에 손을 올리고 상체를 왼쪽, 오른쪽으로 기울여요.
+                    </p>
+                    <button id="ex-btn-3" onclick="startExercise(3, '동작 3. 옆구리 쭉쭉 늘리기! 허리에 손을 올리고 왼쪽, 오른쪽으로 천천히 기울여요. 하나, 둘, 셋, 넷, 다섯, 여섯, 일곱, 여덟, 아홉, 열!')" class="btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-2xl text-lg">
+                        ⏱️ 10초 체조 시작
+                    </button>
+                </div>
+
+                <!-- 동작 4: 으쓱으쓱 거북목 쏙 빼기 -->
+                <div id="ex-card-4" class="bg-emerald-50/60 border-3 border-emerald-200 rounded-3xl p-4 flex flex-col items-center text-center relative">
+                    <span class="bg-emerald-600 text-white px-3 py-0.5 rounded-full text-sm mb-2">동작 ④</span>
+                    <h3 class="text-xl text-emerald-900 mb-2">으쓱으쓱 거북목 쏙 빼기</h3>
+                    <div class="w-36 h-36 bg-white rounded-2xl border-2 border-emerald-100 flex items-center justify-center mb-2 overflow-hidden">
+                        <svg viewBox="0 0 120 120" class="w-full h-full">
+                            <line x1="52" y1="78" x2="50" y2="108" stroke="#64748B" stroke-width="9" stroke-linecap="round"/>
+                            <line x1="68" y1="78" x2="70" y2="108" stroke="#64748B" stroke-width="9" stroke-linecap="round"/>
+                            <!-- 어깨 으쓱 애니메이션 -->
+                            <g class="anim-shrug">
+                                <rect x="44" y="46" width="32" height="34" rx="10" fill="#F97316"/>
+                                <path d="M 36 38 L 36 28 M 32 32 L 36 28 L 40 32" stroke="#0284C7" stroke-width="2.5" fill="none"/>
+                                <path d="M 84 38 L 84 28 M 80 32 L 84 28 L 88 32" stroke="#0284C7" stroke-width="2.5" fill="none"/>
+                            </g>
+                            <circle cx="60" cy="34" r="13" fill="#FED7AA"/>
+                            <path d="M 47 32 Q 60 18 73 32" fill="#451A03"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm sm:text-base text-gray-700 mb-3 flex-grow">
+                        양쪽 어깨를 귀에 닿을 것처럼 힘껏 끌어올렸다가 아래로 툭 내려보세요.
+                    </p>
+                    <button id="ex-btn-4" onclick="startExercise(4, '동작 4. 으쓱으쓱 거북목 쏙 빼기! 양쪽 어깨를 귀까지 끌어올렸다가 아래로 툭 내려보세요. 하나, 둘, 셋, 넷, 다섯, 여섯, 일곱, 여덟, 아홉, 열!')" class="btn-kid w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-2xl text-lg">
+                        ⏱️ 10초 체조 시작
+                    </button>
+                </div>
+            </div>
+
+            <!-- 실시간 타이머 표시 모달/배너 -->
+            <div id="exercise-timer-bar" class="hidden mt-4 bg-amber-100 border-4 border-amber-400 rounded-3xl p-4 text-center pop-in">
+                <p class="text-lg text-amber-900 mb-1" id="timer-ex-name">체조 따라 하는 중!</p>
+                <div class="text-4xl sm:text-5xl text-rose-600 font-bold" id="timer-seconds">10</div>
+                <p class="text-sm text-gray-600 mt-1">선생님 목소리에 맞춰 천천히 따라 해 보아요!</p>
+            </div>
+
+            <button id="act4-next-btn" onclick="goToStep(5)" class="hidden btn-kid w-full bg-purple-500 hover:bg-purple-600 text-white py-3.5 rounded-2xl text-xl mt-4">
+                몸이 튼튼해졌어요! 마지막 약속하기 👉
+            </button>
+        </section>
+
+        <!-- ==================== 활동 5: 나의 약속 & 마무리 퀴즈 (교과서 91쪽) ==================== -->
+        <section id="step-5" class="step-section hidden bg-white rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-purple-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="bg-purple-500 text-white px-3 py-1 rounded-full text-base sm:text-lg">활동 5</span>
+                    <h2 class="text-xl sm:text-2xl text-purple-700">정보 기기 사용의 올바른 자세 약속하기</h2>
+                </div>
+                <button onclick="speakText('활동 5. 내가 지킬 약속을 모두 골라 브이 표시하고, 그림판에 멋진 약속 그림을 그려보아요. 마지막 빈칸 퀴즈도 풀어 상장을 받아보세요!')" class="btn-kid bg-purple-100 hover:bg-purple-200 text-purple-800 px-4 py-2 rounded-2xl text-base sm:text-lg border-2 border-purple-300 flex items-center gap-1">
+                    <span>🔊</span> 안내 듣기
+                </button>
+            </div>
+
+            <!-- Part A: 나의 약속 체크리스트 -->
+            <div class="bg-purple-50 rounded-3xl p-4 border-2 border-purple-200 mb-5">
+                <h3 class="text-lg sm:text-xl text-purple-900 mb-3 flex items-center gap-2">
+                    <span>✅</span> 1. 내가 지킬 약속을 모두 골라 눌러보아요!
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button onclick="togglePromise(0)" id="promise-btn-0" class="promise-item text-left p-3 rounded-2xl bg-white border-2 border-purple-200 flex items-center gap-3 hover:bg-purple-100 transition">
+                        <span id="promise-chk-0" class="w-8 h-8 rounded-xl border-2 border-purple-400 flex items-center justify-center text-xl bg-white"></span>
+                        <span class="text-base sm:text-lg text-gray-800">허리를 쭉 펴고 바르게 앉아요.</span>
+                    </button>
+                    <button onclick="togglePromise(1)" id="promise-btn-1" class="promise-item text-left p-3 rounded-2xl bg-white border-2 border-purple-200 flex items-center gap-3 hover:bg-purple-100 transition">
+                        <span id="promise-chk-1" class="w-8 h-8 rounded-xl border-2 border-purple-400 flex items-center justify-center text-xl bg-white"></span>
+                        <span class="text-base sm:text-lg text-gray-800">태블릿과 눈은 멀리, 거리를 꼭 지켜요.</span>
+                    </button>
+                    <button onclick="togglePromise(2)" id="promise-btn-2" class="promise-item text-left p-3 rounded-2xl bg-white border-2 border-purple-200 flex items-center gap-3 hover:bg-purple-100 transition">
+                        <span id="promise-chk-2" class="w-8 h-8 rounded-xl border-2 border-purple-400 flex items-center justify-center text-xl bg-white"></span>
+                        <span class="text-base sm:text-lg text-gray-800">정해진 시간만큼만 사용하기로 약속해요.</span>
+                    </button>
+                    <button onclick="togglePromise(3)" id="promise-btn-3" class="promise-item text-left p-3 rounded-2xl bg-white border-2 border-purple-200 flex items-center gap-3 hover:bg-purple-100 transition">
+                        <span id="promise-chk-3" class="w-8 h-8 rounded-xl border-2 border-purple-400 flex items-center justify-center text-xl bg-white"></span>
+                        <span class="text-base sm:text-lg text-gray-800">틈틈이 일어나 운동을 해요.</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Part B: 나의 약속을 그림으로 그리기 (캔버스) -->
+            <div class="bg-amber-50 rounded-3xl p-4 border-2 border-amber-200 mb-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h3 class="text-lg sm:text-xl text-amber-900 flex items-center gap-2">
+                        <span>🎨</span> 2. 나의 약속을 그림으로 그려보아요!
+                    </h3>
+                    <!-- 색상 및 도구 팔레트 -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button onclick="setBrushColor('#1E293B')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow ring-2 ring-amber-400 color-btn" aria-label="검정색"></button>
+                        <button onclick="setBrushColor('#EF4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow color-btn" aria-label="빨간색"></button>
+                        <button onclick="setBrushColor('#F59E0B')" class="w-8 h-8 rounded-full bg-amber-500 border-2 border-white shadow color-btn" aria-label="주황색"></button>
+                        <button onclick="setBrushColor('#10B981')" class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white shadow color-btn" aria-label="초록색"></button>
+                        <button onclick="setBrushColor('#3B82F6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow color-btn" aria-label="파란색"></button>
+                        <button onclick="setBrushColor('#EC4899')" class="w-8 h-8 rounded-full bg-pink-500 border-2 border-white shadow color-btn" aria-label="분홍색"></button>
+                        <button onclick="setBrushColor('#FFFFFF', true)" class="px-2.5 py-1 rounded-xl bg-white border-2 border-gray-300 text-sm text-gray-700">🧽 지우개</button>
+                        <button onclick="clearCanvas()" class="px-2.5 py-1 rounded-xl bg-rose-100 border-2 border-rose-300 text-sm text-rose-700">🗑️ 다 지우기</button>
+                    </div>
+                </div>
+                <div class="w-full h-56 sm:h-64 rounded-2xl border-4 border-amber-300 overflow-hidden bg-white relative">
+                    <canvas id="drawing-canvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Part C: 빈칸 채우기 마무리 퀴즈 (교과서 91쪽 하단) -->
+            <div class="bg-rose-50 rounded-3xl p-4 border-2 border-rose-200 mb-5">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg sm:text-xl text-rose-900">❓ 3. 정보 기기를 사용할 때 왜 올바른 자세가 중요한가요?</h3>
+                    <button onclick="speakText('정보 기기를 사용할 때 왜 올바른 자세가 중요한가요? 보기 버튼을 눌러 빈칸을 채워보세요!')" class="bg-rose-100 px-3 py-1 rounded-xl text-sm text-rose-800 border border-rose-300">🔊 듣기</button>
+                </div>
+                
+                <div class="bg-white p-4 rounded-2xl border-2 border-rose-200 text-center text-xl sm:text-2xl leading-relaxed mb-3">
+                    "우리 몸을 
+                    <button onclick="clearBlank(1)" id="blank-1" class="inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-rose-400 bg-rose-50 text-rose-600 align-middle">
+                        ( ? )
+                    </button>, 
+                    <button onclick="clearBlank(2)" id="blank-2" class="inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-rose-400 bg-rose-50 text-rose-600 align-middle">
+                        ( ? )
+                    </button> 
+                    지켜주기 때문입니다."
+                </div>
+
+                <!-- 보기 버튼 -->
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <span class="bg-rose-500 text-white px-3 py-1 rounded-full text-base">보기</span>
+                    <button onclick="fillBlank('건강하게')" id="word-btn-1" class="btn-kid bg-white hover:bg-rose-100 border-2 border-rose-300 px-5 py-2 rounded-2xl text-xl text-gray-800">
+                        건강하게
+                    </button>
+                    <button onclick="fillBlank('바르게')" id="word-btn-2" class="btn-kid bg-white hover:bg-rose-100 border-2 border-rose-300 px-5 py-2 rounded-2xl text-xl text-gray-800">
+                        바르게
+                    </button>
+                </div>
+            </div>
+
+            <!-- 이름 입력 & 상장 받기 버튼 -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 bg-gradient-to-r from-amber-100 to-purple-100 p-4 rounded-3xl border-2 border-amber-300">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label for="student-name" class="text-lg text-gray-800 whitespace-nowrap">내 이름:</label>
+                    <input type="text" id="student-name" placeholder="예: 김하늘" maxlength="10" class="w-full sm:w-40 px-3 py-2 rounded-2xl border-2 border-purple-300 text-lg text-center focus:outline-none focus:border-purple-500">
+                </div>
+                <button onclick="openCertificate()" class="btn-kid w-full sm:w-auto bg-gradient-to-r from-amber-400 to-orange-500 text-white px-8 py-3.5 rounded-2xl text-xl shadow-md">
+                    🏆 바른 자세 지킴이 상장 받기!
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 하단 안내 푸터 -->
+    <footer class="text-center text-gray-500 text-sm py-3 px-2">
+        초등학교 1학년 통합교과 '올바른 정보 기기 사용 방법(자세)' 학습 웹앱
+    </footer>
+
+    <!-- ==================== 상장 팝업 모달 & 폭죽 캔버스 ==================== -->
+    <div id="certificate-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 overflow-y-auto">
+        <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+        
+        <div class="bg-[#FFFDF7] border-8 border-double border-amber-400 rounded-3xl max-w-lg w-full p-5 sm:p-7 text-center relative shadow-2xl pop-in z-50 my-auto">
+            <div class="text-4xl sm:text-5xl mb-2">👑</div>
+            <h2 class="text-2xl sm:text-3xl text-amber-700 tracking-widest mb-1">바른 자세 지킴이 상장</h2>
+            <p class="text-sm text-amber-600 mb-4">제 1학년 바른생활 호</p>
+
+            <div class="text-right text-xl sm:text-2xl text-gray-800 mb-3 pr-2">
+                이름: <span id="cert-name" class="underline decoration-amber-400 decoration-wavy font-bold text-purple-700">멋진 어린이</span>
+            </div>
+
+            <p class="text-base sm:text-lg text-gray-700 leading-relaxed mb-4 bg-amber-50 p-3 rounded-2xl border border-amber-200">
+                위 어린이는 정보 기기를 사용할 때<br>
+                우리 몸을 <strong class="text-rose-600">건강하게</strong>, <strong class="text-sky-600">바르게</strong> 지키는<br>
+                올바른 자세를 훌륭하게 익혔으므로 이 상장을 드립니다!
+            </p>
+
+            <!-- 아이가 그린 약속 그림 미리보기 -->
+            <div class="mb-4">
+                <p class="text-sm text-gray-500 mb-1">🎨 내가 그린 바른 자세 약속 그림</p>
+                <div class="w-full h-36 bg-white rounded-2xl border-2 border-amber-300 overflow-hidden flex items-center justify-center">
+                    <img id="cert-drawing-img" alt="내가 그린 약속 그림" class="max-h-full max-w-full object-contain">
+                </div>
+            </div>
+
+            <!-- 획득한 별 5개 표시 -->
+            <div class="flex justify-center gap-2 text-3xl mb-4">
+                <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+            </div>
+
+            <div class="flex justify-center gap-3">
+                <button onclick="closeCertificate()" class="btn-kid bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-2xl text-lg">
+                    닫기 (계속 연습하기)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 커스텀 안내 메시지 토스트 (alert 대체용) -->
+    <div id="toast-msg" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full text-lg shadow-xl z-50 pop-in">
+        메시지
+    </div>
+
+    <!-- ==================== 자바스크립트 로직 ==================== -->
+    <script>
+        /* -------------------- 1. 오디오(효과음 & TTS 음성 읽기) -------------------- */
+        let isMuted = false;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // 효과음 재생기 (Web Audio API)
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // 도
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08); // 미
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'correct') {
+                    // 딩동댕 (도-미-솔-도)
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'triangle';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                        g.gain.setValueAtTime(0.25, now + idx * 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.25);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(now + idx * 0.1);
+                        o.stop(now + idx * 0.1 + 0.25);
+                    });
+                } else if (type === 'wrong') {
+                    // 띠용 (낮은음)
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(160, now + 0.25);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                    osc.start(now);
+                    osc.stop(now + 0.28);
+                } else if (type === 'fanfare') {
+                    // 축하 팡파르
+                    const chord = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                    chord.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'triangle';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        g.gain.setValueAtTime(0.25, now + idx * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.5);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(now + idx * 0.08);
+                        o.stop(now + idx * 0.08 + 0.5);
+                    });
+                }
+            } catch (e) {
+                console.warn('오디오 재생 오류:', e);
+            }
+        }
+
+        // 초1 눈높이 TTS 읽어주기
+        function speakText(text) {
+            if (isMuted) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ko-KR';
+                utterance.rate = 0.92; // 초등학생이 듣기 편하도록 약간 천천히
+                utterance.pitch = 1.15; // 밝고 다정한 목소리 톤
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleAudioMute() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('sound-icon');
+            const label = document.getElementById('sound-label');
+            if (isMuted) {
+                icon.textContent = '🔇';
+                label.textContent = '소리 꺼짐';
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            } else {
+                icon.textContent = '🔊';
+                label.textContent = '소리 켜짐';
+                playSound('click');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2200);
+        }
+
+        /* -------------------- 2. 학습 단계 전환 & 별 스탬프 관리 -------------------- */
+        let currentStep = 1;
+        const completedSteps = { 1: false, 2: false, 3: false, 4: false, 5: false };
+
+        function goToStep(stepNum) {
+            playSound('click');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+            currentStep = stepNum;
+            document.querySelectorAll('.step-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`step-${stepNum}`).classList.remove('hidden');
+
+            // 상단 네비게이션 버튼 스타일 업데이트
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`nav-step-${i}`);
+                if (i === stepNum) {
+                    btn.className = 'step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-amber-400 border-amber-500 text-white shadow-md scale-105';
+                } else if (completedSteps[i]) {
+                    btn.className = 'step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-amber-100 border-amber-300 text-amber-800';
+                } else {
+                    btn.className = 'step-btn flex flex-col items-center px-2.5 py-1 rounded-2xl border-2 transition-all bg-gray-100 border-gray-200 text-gray-500';
+                }
+            }
+
+            if (stepNum === 5) {
+                setTimeout(resizeCanvas, 50);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function earnStar(stepNum) {
+            if (!completedSteps[stepNum]) {
+                completedSteps[stepNum] = true;
+                document.getElementById(`star-${stepNum}`).textContent = '⭐';
+                playSound('fanfare');
+            }
+        }
+
+        /* -------------------- 3. 활동 1: 아픈 곳 찾기 로직 -------------------- */
+        const painData = {
+            eye: {
+                emoji: '👀',
+                title: '눈이 너무 아파요!',
+                desc: '태블릿 화면을 너무 가까이서 오래 보면 눈이 침침하고 나빠져요!',
+                badgeText: '👀 눈 찾음!'
+            },
+            neck: {
+                emoji: '🦒',
+                title: '목이 뻐근하고 아파요!',
+                desc: '고개를 꺾고 화면을 쳐다보면 목뼈가 아파서 거북목이 될 수 있어요!',
+                badgeText: '🦒 목 찾음!'
+            },
+            shoulder: {
+                emoji: '💪',
+                title: '아! 어깨가 너무 아파!',
+                desc: '팔꿈치로 몸을 받치고 엎드려 있으면 어깨에 힘이 잔뜩 들어가 아파요!',
+                badgeText: '💪 어깨 찾음!'
+            },
+            back: {
+                emoji: '🦴',
+                title: '허리가 굽고 아파요!',
+                desc: '바닥에 엎드려 다리를 들고 있으면 허리가 휘어져서 몹시 아파요!',
+                badgeText: '🦴 허리 찾음!'
+            }
+        };
+        const foundSpots = new Set();
+
+        function foundPainSpot(spotKey) {
+            playSound('correct');
+            const info = painData[spotKey];
+
+            // 피드백 카드 업데이트
+            document.getElementById('act1-emoji').textContent = info.emoji;
+            document.getElementById('act1-title').textContent = info.title;
+            document.getElementById('act1-desc').textContent = info.desc;
+            speakText(`${info.title} ${info.desc}`);
+
+            // SVG 원 초록색 체크로 변경
+            const circle = document.getElementById(`spot-${spotKey}`);
+            const ring = document.getElementById(`spot-${spotKey}-ring`);
+            circle.setAttribute('fill', '#10B981');
+            ring.classList.remove('hotspot-pulse');
+            ring.setAttribute('opacity', '0');
+
+            // 하단 배지 활성화
+            const badge = document.getElementById(`badge-${spotKey}`);
+            badge.textContent = info.badgeText;
+            badge.className = 'bg-rose-100 text-rose-700 font-bold p-2.5 rounded-2xl text-center text-base border-2 border-rose-300 pop-in';
+
+            foundSpots.add(spotKey);
+            document.getElementById('act1-count').textContent = foundSpots.size;
+
+            if (foundSpots.size === 4) {
+                earnStar(1);
+                document.getElementById('act1-next-btn').classList.remove('hidden');
+                setTimeout(() => {
+                    speakText('와! 아픈 곳 네 군데를 모두 찾았어요! 참 잘했어요!');
+                }, 2800);
+            }
+        }
+
+        /* -------------------- 4. 활동 2: 바른 자세 알아보기 로직 -------------------- */
+        const checkedRules = new Set();
+
+        function checkGoodRule(num, partKey, speechText) {
+            playSound('correct');
+            speakText(speechText);
+
+            // SVG 하이라이트 원 표시
+            ['back', 'dist', 'eye', 'foot'].forEach(k => {
+                document.getElementById(`hl-${k}`).setAttribute('opacity', k === partKey ? '1' : '0');
+            });
+
+            // 버튼 완료 스타일
+            const btn = document.getElementById(`rule-btn-${num}`);
+            const icon = document.getElementById(`rule-icon-${num}`);
+            btn.className = 'btn-kid text-left p-3.5 rounded-2xl border-3 border-emerald-400 bg-emerald-50 flex items-center gap-3';
+            icon.textContent = '✅';
+
+            checkedRules.add(num);
+            document.getElementById('act2-count').textContent = checkedRules.size;
+
+            if (checkedRules.size === 4) {
+                earnStar(2);
+                document.getElementById('act2-next-btn').classList.remove('hidden');
+            }
+        }
+
+        /* -------------------- 5. 활동 3: O/X 자세 탐정 퀴즈 로직 -------------------- */
+        const quizList = [
+            {
+                question: '1번 문제: 바닥에 엎드려서 태블릿을 보고 있어요.',
+                isCorrectPosture: false,
+                explanation: '바닥에 엎드려 보면 목, 어깨, 허리가 모두 아프고 눈도 나빠져요!',
+                svg: `<svg viewBox="0 0 240 160" class="w-full h-36 mx-auto">
+                        <rect width="240" height="160" fill="#FEF3C7" rx="12"/>
+                        <rect x="20" y="120" width="200" height="25" fill="#FDE68A"/>
+                        <path d="M 100 115 L 185 115" stroke="#3B82F6" stroke-width="14" stroke-linecap="round"/>
+                        <rect x="85" y="95" width="45" height="22" rx="8" fill="#FACC15"/>
+                        <circle cx="75" cy="95" r="18" fill="#FED7AA"/>
+                        <path d="M 60 92 Q 75 75 90 92" fill="#451A03"/>
+                        <rect x="30" y="105" width="25" height="6" fill="#475569"/>
+                      </svg>`
+            },
+            {
+                question: '2번 문제: 방바닥에 앉아 쿠션 위에 태블릿을 놓고 고개를 푹 숙여 봐요.',
+                isCorrectPosture: false,
+                explanation: '고개를 푹 숙이고 등을 구부리면 목과 허리가 아파요. 책상과 의자에 앉아야 해요!',
+                svg: `<svg viewBox="0 0 240 160" class="w-full h-36 mx-auto">
+                        <rect width="240" height="160" fill="#F1F5F9" rx="12"/>
+                        <line x1="30" y1="130" x2="135" y2="130" stroke="#3B82F6" stroke-width="12" stroke-linecap="round"/>
+                        <ellipse cx="115" cy="115" rx="28" ry="12" fill="#FB7185"/>
+                        <polygon points="95,82 115,85 120,108 100,105" fill="#334155"/>
+                        <path d="M 155 125 Q 150 95 142 82" fill="none" stroke="#F472B6" stroke-width="18" stroke-linecap="round"/>
+                        <circle cx="135" cy="68" r="18" fill="#FED7AA"/>
+                        <path d="M 122 65 Q 138 48 152 68" fill="#451A03"/>
+                      </svg>`
+            },
+            {
+                question: '3번 문제: 책상과 의자에 허리를 펴고 바르게 앉아 거치대로 봐요.',
+                isCorrectPosture: true,
+                explanation: '참 잘했어요! 의자에 바르게 앉아 눈높이와 거리를 지키면 몸이 튼튼해져요!',
+                svg: `<svg viewBox="0 0 240 160" class="w-full h-36 mx-auto">
+                        <rect width="240" height="160" fill="#E0F2FE" rx="12"/>
+                        <rect x="40" y="105" width="90" height="8" fill="#B45309"/>
+                        <line x1="50" y1="113" x2="50" y2="145" stroke="#78350F" stroke-width="5"/>
+                        <polygon points="75,72 95,76 100,103 80,99" fill="#1E293B"/>
+                        <rect x="140" y="112" width="35" height="8" fill="#F59E0B"/>
+                        <line x1="170" y1="75" x2="170" y2="145" stroke="#B45309" stroke-width="6"/>
+                        <path d="M 155 110 L 125 110 L 125 142" fill="none" stroke="#1E3A8A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="145" y="72" width="20" height="38" rx="8" fill="#EF4444"/>
+                        <circle cx="152" cy="54" r="17" fill="#FED7AA"/>
+                        <path d="M 136 52 Q 152 35 168 52" fill="#451A03"/>
+                      </svg>`
+            },
+            {
+                question: '4번 문제: 소파에 비스듬히 누워서 화면을 얼굴 바로 앞에서 봐요.',
+                isCorrectPosture: false,
+                explanation: '소파에 누워서 얼굴 가까이 보면 눈이 금방 피로해지고 허리도 비뚤어져요!',
+                svg: `<svg viewBox="0 0 240 160" class="w-full h-36 mx-auto">
+                        <rect width="240" height="160" fill="#FFEDD5" rx="12"/>
+                        <rect x="25" y="55" width="190" height="85" rx="16" fill="#EA580C" opacity="0.7"/>
+                        <ellipse cx="68" cy="85" rx="22" ry="16" fill="#FEF3C7"/>
+                        <path d="M 85 95 Q 115 115 145 105 L 180 95" fill="none" stroke="#16A34A" stroke-width="18" stroke-linecap="round"/>
+                        <circle cx="82" cy="74" r="17" fill="#FED7AA"/>
+                        <path d="M 67 72 Q 82 55 97 72" fill="#451A03"/>
+                        <rect x="108" y="65" width="8" height="28" rx="2" fill="#334155"/>
+                      </svg>`
+            }
+        ];
+
+        let currentQuizIdx = 0;
+
+        function renderQuiz() {
+            const q = quizList[currentQuizIdx];
+            document.getElementById('quiz-num').textContent = currentQuizIdx + 1;
+            document.getElementById('quiz-illustration').innerHTML = q.svg;
+            document.getElementById('quiz-question').textContent = q.question;
+            document.getElementById('quiz-choices').classList.remove('hidden');
+            document.getElementById('quiz-feedback').classList.add('hidden');
+        }
+
+        function speakCurrentQuiz() {
+            speakText(quizList[currentQuizIdx].question + ' 올바른 자세일까요, 잘못된 자세일까요?');
+        }
+
+        function answerQuiz(userChoice) {
+            const q = quizList[currentQuizIdx];
+            const isRight = (userChoice === q.isCorrectPosture);
+            const fbBox = document.getElementById('quiz-feedback');
+            const fbIcon = document.getElementById('quiz-fb-icon');
+            const fbTitle = document.getElementById('quiz-fb-title');
+            const fbDesc = document.getElementById('quiz-fb-desc');
+            const nextBtn = document.getElementById('quiz-next-btn');
+
+            document.getElementById('quiz-choices').classList.add('hidden');
+            fbBox.classList.remove('hidden');
+
+            if (isRight) {
+                playSound('correct');
+                fbBox.className = 'w-full rounded-3xl p-4 border-4 border-emerald-400 bg-emerald-50 text-center pop-in';
+                fbIcon.textContent = '🎉';
+                fbTitle.textContent = '딩동댕! 정답이에요!';
+                fbTitle.className = 'text-xl sm:text-2xl text-emerald-700 mb-1';
+                speakText('딩동댕! 정답이에요! ' + q.explanation);
+            } else {
+                playSound('wrong');
+                fbBox.className = 'w-full rounded-3xl p-4 border-4 border-rose-400 bg-rose-50 text-center pop-in';
+                fbIcon.textContent = '🤔';
+                fbTitle.textContent = '다시 한 번 생각해 보아요!';
+                fbTitle.className = 'text-xl sm:text-2xl text-rose-700 mb-1';
+                speakText('아쉬워요! ' + q.explanation);
+            }
+
+            fbDesc.textContent = q.explanation;
+
+            if (currentQuizIdx === quizList.length - 1) {
+                nextBtn.textContent = '퀴즈 완료! 건강 체조 하러 가기 👉';
+            } else {
+                nextBtn.textContent = '다음 문제 👉';
+            }
+        }
+
+        function nextQuiz() {
+            playSound('click');
+            if (currentQuizIdx < quizList.length - 1) {
+                currentQuizIdx++;
+                renderQuiz();
+                speakCurrentQuiz();
+            } else {
+                earnStar(3);
+                goToStep(4);
+            }
+        }
+
+        /* -------------------- 6. 활동 4: 10초 건강 체조 타이머 로직 -------------------- */
+        let exerciseInterval = null;
+        const completedExercises = new Set();
+
+        function startExercise(exNum, speechGuide) {
+            if (exerciseInterval) {
+                clearInterval(exerciseInterval);
+            }
+            playSound('click');
+            speakText(speechGuide);
+
+            const timerBar = document.getElementById('exercise-timer-bar');
+            const timerName = document.getElementById('timer-ex-name');
+            const timerSec = document.getElementById('timer-seconds');
+
+            const titles = [
+                '',
+                '동작 ① 하늘 높이 올려보기',
+                '동작 ② 굽은 등 쫙 펴주기',
+                '동작 ③ 옆구리 쭉쭉 늘리기',
+                '동작 ④ 으쓱으쓱 거북목 쏙 빼기'
+            ];
+
+            timerName.textContent = `${titles[exNum]} 따라 하는 중!`;
+            let timeLeft = 10;
+            timerSec.textContent = timeLeft;
+            timerBar.classList.remove('hidden');
+
+            exerciseInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    timerSec.textContent = timeLeft;
+                    playSound('click');
+                } else {
+                    clearInterval(exerciseInterval);
+                    exerciseInterval = null;
+                    timerBar.classList.add('hidden');
+                    completeExercise(exNum);
+                }
+            }, 1000);
+        }
+
+        function completeExercise(exNum) {
+            playSound('correct');
+            completedExercises.add(exNum);
+            document.getElementById('act4-count').textContent = completedExercises.size;
+
+            const btn = document.getElementById(`ex-btn-${exNum}`);
+            btn.textContent = '🏅 체조 완료! (다시 하기)';
+            btn.className = 'btn-kid w-full bg-amber-400 hover:bg-amber-500 text-amber-950 py-2.5 rounded-2xl text-lg';
+
+            if (completedExercises.size === 4) {
+                earnStar(4);
+                document.getElementById('act4-next-btn').classList.remove('hidden');
+                speakText('와! 네 가지 건강 체조를 모두 마쳤어요! 정말 멋져요!');
+            } else {
+                showToast('체조 완료! 다음 동작도 따라 해 보아요!');
+            }
+        }
+
+        /* -------------------- 7. 활동 5: 약속 체크 & 캔버스 그림판 & 빈칸 퀴즈 -------------------- */
+        const promiseChecked = [false, false, false, false];
+
+        function togglePromise(idx) {
+            playSound('click');
+            promiseChecked[idx] = !promiseChecked[idx];
+            const chk = document.getElementById(`promise-chk-${idx}`);
+            const btn = document.getElementById(`promise-btn-${idx}`);
+
+            if (promiseChecked[idx]) {
+                chk.textContent = '✔️';
+                chk.className = 'w-8 h-8 rounded-xl border-2 border-purple-500 flex items-center justify-center text-xl bg-purple-100';
+                btn.className = 'promise-item text-left p-3 rounded-2xl bg-purple-100 border-2 border-purple-400 flex items-center gap-3 transition';
+            } else {
+                chk.textContent = '';
+                chk.className = 'w-8 h-8 rounded-xl border-2 border-purple-400 flex items-center justify-center text-xl bg-white';
+                btn.className = 'promise-item text-left p-3 rounded-2xl bg-white border-2 border-purple-200 flex items-center gap-3 hover:bg-purple-100 transition';
+            }
+        }
+
+        // 캔버스 그림판 설정
+        const canvas = document.getElementById('drawing-canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let brushColor = '#1E293B';
+        let brushSize = 5;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            // 기존 그림 보존
+            const tempImg = canvas.toDataURL();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const img = new Image();
+            img.onload = () => ctx.drawImage(img, 0, 0);
+            img.src = tempImg;
+        }
+
+        function setBrushColor(color, isEraser = false) {
+            playSound('click');
+            brushColor = color;
+            brushSize = isEraser ? 18 : 5;
+        }
+
+        function clearCanvas() {
+            playSound('click');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function moveDraw(e) {
+            if (!isDrawing) return;
+            if (e.cancelable) e.preventDefault();
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = brushColor;
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        function endDraw() {
+            isDrawing = false;
+            ctx.closePath();
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+        window.addEventListener('resize', resizeCanvas);
+
+        // 빈칸 채우기 마무리 퀴즈 (교과서 91쪽)
+        let blank1Val = '';
+        let blank2Val = '';
+
+        function fillBlank(word) {
+            playSound('click');
+            if (!blank1Val) {
+                blank1Val = word;
+                const b1 = document.getElementById('blank-1');
+                b1.textContent = word;
+                b1.className = 'inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-emerald-500 bg-emerald-100 text-emerald-800 font-bold align-middle pop-in';
+            } else if (!blank2Val) {
+                blank2Val = word;
+                const b2 = document.getElementById('blank-2');
+                b2.textContent = word;
+                b2.className = 'inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-emerald-500 bg-emerald-100 text-emerald-800 font-bold align-middle pop-in';
+            }
+
+            if (blank1Val && blank2Val) {
+                playSound('correct');
+                speakText(`우리 몸을 ${blank1Val}, ${blank2Val} 지켜주기 때문입니다. 정답이에요!`);
+            }
+        }
+
+        function clearBlank(num) {
+            playSound('click');
+            if (num === 1) {
+                blank1Val = '';
+                const b1 = document.getElementById('blank-1');
+                b1.textContent = '( ? )';
+                b1.className = 'inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-rose-400 bg-rose-50 text-rose-600 align-middle';
+            } else {
+                blank2Val = '';
+                const b2 = document.getElementById('blank-2');
+                b2.textContent = '( ? )';
+                b2.className = 'inline-block min-w-[110px] px-3 py-1 mx-1 rounded-xl border-b-4 border-rose-400 bg-rose-50 text-rose-600 align-middle';
+            }
+        }
+
+        /* -------------------- 8. 상장 발급 & 폭죽 애니메이션 -------------------- */
+        function openCertificate() {
+            if (!blank1Val || !blank2Val) {
+                playSound('wrong');
+                showToast('먼저 아래 빈칸(건강하게, 바르게)을 채워주세요!');
+                speakText('먼저 빈칸 채우기 문제를 완성해 주세요!');
+                return;
+            }
+
+            earnStar(5);
+            playSound('fanfare');
+
+            const nameInput = document.getElementById('student-name').value.trim();
+            const finalName = nameInput ? nameInput : '멋진 1학년 어린이';
+            document.getElementById('cert-name').textContent = finalName;
+
+            // 그림판 이미지 복사
+            document.getElementById('cert-drawing-img').src = canvas.toDataURL();
+
+            document.getElementById('certificate-modal').classList.remove('hidden');
+            startConfetti();
+            speakText(`축하합니다! ${finalName} 어린이에게 바른 자세 지킴이 상장을 드립니다!`);
+        }
+
+        function closeCertificate() {
+            playSound('click');
+            document.getElementById('certificate-modal').classList.add('hidden');
+        }
+
+        // 폭죽(Confetti) 애니메이션
+        function startConfetti() {
+            const confCanvas = document.getElementById('confetti-canvas');
+            const cCtx = confCanvas.getContext('2d');
+            confCanvas.width = window.innerWidth;
+            confCanvas.height = window.innerHeight;
+
+            const colors = ['#F43F5E', '#F59E0B', '#10B981', '#3B82F6', '#A855F7'];
+            const pieces = Array.from({ length: 80 }, () => ({
+                x: Math.random() * confCanvas.width,
+                y: Math.random() * confCanvas.height - confCanvas.height,
+                size: Math.random() * 10 + 6,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                speedY: Math.random() * 4 + 2,
+                speedX: Math.random() * 4 - 2,
+                angle: Math.random() * 360
+            }));
+
+            let frames = 0;
+            function animateConfetti() {
+                if (frames > 180 || document.getElementById('certificate-modal').classList.contains('hidden')) {
+                    cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+                    return;
+                }
+                frames++;
+                cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+                pieces.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.angle += 5;
+                    cCtx.save();
+                    cCtx.translate(p.x, p.y);
+                    cCtx.rotate((p.angle * Math.PI) / 180);
+                    cCtx.fillStyle = p.color;
+                    cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                    cCtx.restore();
+                });
+                requestAnimationFrame(animateConfetti);
+            }
+            animateConfetti();
+        }
+
+        // 초기 실행 설정
+        window.onload = function () {
+            renderQuiz();
+        };
+    </script>
+</body>
+</html>
