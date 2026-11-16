@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 데이터 탐험대! 생활 속 인공지능 퀴즈</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Jua (친근한 초등학생용 폰트) & Noto Sans KR (가독성 높은 본문/PDF용 폰트) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <!-- html2pdf.js CDN (한글 캡처 기반 PDF 저장을 위해 html2canvas + jsPDF 내장 라이브러리 사용) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            jua: ['"Jua"', 'sans-serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            sunny: {
+              100: '#fef3c7',
+              400: '#fbbf24',
+              500: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #fef9c3 50%, #fce7f3 100%);
+      min-height: 100vh;
+    }
+
+    .font-title {
+      font-family: 'Jua', sans-serif;
+    }
+
+    /* 부드러운 카드 등장 애니메이션 */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-card {
+      animation: fadeSlideUp 0.4s ease-out forwards;
+    }
+
+    /* 객관식 선택 버튼 효과 */
+    .option-btn {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .option-btn:hover {
+      transform: translateY(-2px);
+    }
+    .option-btn.selected {
+      background-color: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 6px 15px -3px rgba(37, 99, 235, 0.35);
+    }
+    .option-btn.selected .option-badge {
+      background-color: #ffffff;
+      color: #2563eb;
+    }
+
+    /* PDF 캡처용 전용 컨테이너 스타일 보정 */
+    .pdf-capturing {
+      background: #ffffff !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 16px !important;
+      max-width: 780px !important;
+      width: 780px !important;
+    }
+    .pdf-capturing .no-print {
+      display: none !important;
+    }
+    .pdf-capturing .result-item {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* 브라우저 기본 인쇄(@media print) 완벽 지원 */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #app-header {
+        display: none !important;
+      }
+      #result-screen {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+      }
+      #printable-area {
+        box-shadow: none !important;
+        border: 2px solid #cbd5e1 !important;
+        padding: 16px !important;
+      }
+      .result-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900">
+
+  <!-- 커스텀 알림 모달 (alert() 대체용) -->
+  <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-4 border-amber-300 text-center animate-card">
+      <div id="modal-icon" class="text-5xl mb-3">💡</div>
+      <h3 id="modal-title" class="font-title text-2xl text-slate-800 mb-2">잠깐만요!</h3>
+      <p id="modal-message" class="text-slate-600 text-base leading-relaxed mb-6">내용을 확인해 주세요.</p>
+      <div id="modal-actions" class="flex gap-3 justify-center">
+        <button id="modal-cancel-btn" class="hidden flex-1 py-3 px-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-base transition">
+          취소
+        </button>
+        <button id="modal-confirm-btn" class="flex-1 py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-md transition">
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상단 공통 헤더 -->
+  <header id="app-header" class="max-w-3xl mx-auto pt-6 px-4 no-print">
+    <div class="bg-white/90 backdrop-blur-md rounded-3xl px-6 py-4 shadow-lg border-2 border-blue-100 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-4xl">🤖</span>
+        <div>
+          <span class="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full mb-0.5">초등학교 실과·정보 AI 탐구</span>
+          <h1 class="font-title text-2xl sm:text-3xl text-slate-800 tracking-wide">AI 데이터 탐험대 퀴즈</h1>
+        </div>
+      </div>
+      <div id="header-student-badge" class="hidden bg-amber-100 border border-amber-300 text-amber-900 px-4 py-1.5 rounded-2xl font-bold text-sm sm:text-base flex items-center gap-1.5">
+        <span>🎒</span>
+        <span id="badge-text"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨테이너 -->
+  <main class="max-w-3xl mx-auto px-4 py-6 pb-16">
+
+    <!-- [화면 1] 시작 및 학생 정보 입력 화면 -->
+    <section id="start-screen" class="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border-4 border-blue-200 animate-card">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-blue-50 border-4 border-blue-200 text-5xl mb-4 shadow-inner">
+          🧠✨
+        </div>
+        <h2 class="font-title text-3xl sm:text-4xl text-blue-700 mb-3">인공지능은 무엇을 먹고 똑똑해질까요?</h2>
+        <p class="text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+          우리 생활 속 여러 <strong>AI(인공지능) 기기</strong>들이 똑똑하게 움직이기 위해<br class="hidden sm:inline" />
+          어떤 <span class="text-blue-600 font-bold underline decoration-amber-400 decoration-4">데이터(정보)</span>를 입력받는지 퀴즈로 맞혀보아요!
+        </p>
+      </div>
+
+      <!-- 퀴즈 구성 안내 카드 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div class="bg-sky-50 rounded-2xl p-4 border-2 border-sky-200 flex items-start gap-3">
+          <span class="text-3xl">1️⃣</span>
+          <div>
+            <h3 class="font-title text-xl text-sky-800">1단계: 객관식 퀴즈 (5문제)</h3>
+            <p class="text-sm text-slate-600 mt-1">AI 기기에 필요한 데이터를 4개의 보기 중에서 알맞게 골라보아요.</p>
+          </div>
+        </div>
+        <div class="bg-amber-50 rounded-2xl p-4 border-2 border-amber-200 flex items-start gap-3">
+          <span class="text-3xl">2️⃣</span>
+          <div>
+            <h3 class="font-title text-xl text-amber-800">2단계: 주관식 퀴즈 (5문제)</h3>
+            <p class="text-sm text-slate-600 mt-1">AI 기기에 들어가는 핵심 데이터 단어를 직접 키보드로 적어보아요.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 학생 정보 입력 폼 -->
+      <div class="bg-slate-50 rounded-2xl p-5 sm:p-6 border-2 border-slate-200 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div>
+            <label for="input-class" class="block text-sm font-bold text-slate-700 mb-1.5">반</label>
+            <input id="input-class" type="number" min="1" max="20" placeholder="예: 3" class="w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-3 text-base font-bold text-slate-800 focus:border-blue-500 focus:outline-none" />
+          </div>
+          <div>
+            <label for="input-number" class="block text-sm font-bold text-slate-700 mb-1.5">번호</label>
+            <input id="input-number" type="number" min="1" max="50" placeholder="예: 12" class="w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-3 text-base font-bold text-slate-800 focus:border-blue-500 focus:outline-none" />
+          </div>
+          <div>
+            <label for="input-name" class="block text-sm font-bold text-slate-700 mb-1.5">이름</label>
+            <input id="input-name" type="text" maxlength="12" placeholder="예: 김하늘" class="w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-3 text-base font-bold text-slate-800 focus:border-blue-500 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <button id="start-quiz-btn" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-title text-2xl sm:text-3xl shadow-lg shadow-blue-500/30 transform transition active:scale-[0.99] flex items-center justify-center gap-3">
+        <span>🚀 퀴즈 탐험 시작하기!</span>
+      </button>
+    </section>
+
+    <!-- [화면 2] 퀴즈 진행 화면 -->
+    <section id="quiz-screen" class="hidden animate-card">
+      <!-- 상단 단계 탭 & 진행바 -->
+      <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-md border-2 border-slate-200 mb-5">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <button id="tab-stage-1" class="flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow">
+            <span>1단계: 객관식 (Q1~Q5)</span>
+          </button>
+          <button id="tab-stage-2" class="flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200">
+            <span>2단계: 주관식 (Q6~Q10)</span>
+          </button>
+        </div>
+
+        <!-- 진행률 표시 바 -->
+        <div class="flex items-center justify-between text-xs sm:text-sm font-bold text-slate-600 mb-1.5 px-1">
+          <span id="progress-label">문제 1 / 10</span>
+          <span id="answered-count-label" class="text-blue-600">작성 완료: 0 / 10문제</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden p-0.5">
+          <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 10%;"></div>
+        </div>
+
+        <!-- 문항 빠른 이동 번호 버튼 (1~10) -->
+        <div id="question-nav-dots" class="grid grid-cols-10 gap-1.5 mt-3 pt-3 border-t border-slate-100">
+          <!-- JS로 1~10 버튼 동적 생성 -->
+        </div>
+      </div>
+
+      <!-- 문제 카드 영역 -->
+      <div id="question-card" class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-blue-200 mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <span id="q-stage-badge" class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-700">
+            1단계 · 객관식
+          </span>
+          <span id="q-device-tag" class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-800">
+            🔊 AI 스피커
+          </span>
+        </div>
+
+        <!-- 문제 질문 -->
+        <div class="flex items-start gap-4 mb-6">
+          <div id="q-emoji" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-inner">
+            🔊
+          </div>
+          <div>
+            <h3 id="q-number-title" class="font-title text-xl text-blue-600 mb-1">문제 1.</h3>
+            <p id="q-text" class="text-lg sm:text-2xl font-bold text-slate-800 leading-snug">
+              거실에 있는 'AI 스피커'가 우리의 말을 알아듣고 노래를 틀어주려면 어떤 데이터가 필요할까요?
+            </p>
+          </div>
+        </div>
+
+        <!-- [객관식 영역] -->
+        <div id="mc-options-container" class="space-y-3">
+          <!-- JS로 보기 버튼 4개 동적 생성 -->
+        </div>
+
+        <!-- [주관식 영역] -->
+        <div id="sa-input-container" class="hidden">
+          <div class="bg-amber-50/80 border-2 border-amber-200 rounded-2xl p-4 sm:p-5">
+            <label for="sa-answer-input" class="block font-bold text-slate-700 text-base sm:text-lg mb-2.5">
+              ✍️ 알맞은 데이터 단어를 직접 적어 보세요!
+            </label>
+            <input
+              id="sa-answer-input"
+              type="text"
+              autocomplete="off"
+              placeholder="기기의 센서나 입력 장치를 떠올리며 정답을 적어 보세요..."
+              class="w-full rounded-2xl border-2 border-amber-400 bg-white px-4 py-4 text-lg sm:text-xl font-bold text-slate-800 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none transition"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 이전 / 다음 / 제출 버튼 -->
+      <div class="flex items-center justify-between gap-3">
+        <button id="prev-q-btn" class="py-3.5 px-5 sm:px-7 rounded-2xl bg-white hover:bg-slate-100 border-2 border-slate-300 text-slate-700 font-bold text-base sm:text-lg shadow-sm transition disabled:opacity-40 disabled:pointer-events-none">
+          ⬅️ 이전 문제
+        </button>
+
+        <button id="next-q-btn" class="flex-1 sm:flex-initial py-3.5 px-7 sm:px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base sm:text-lg shadow-md transition">
+          다음 문제 ➡️
+        </button>
+
+        <button id="submit-quiz-btn" class="hidden flex-1 sm:flex-initial py-3.5 px-7 sm:px-10 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-title text-xl sm:text-2xl shadow-lg shadow-emerald-500/30 transition">
+          🎉 채점하고 결과 보기!
+        </button>
+      </div>
+    </section>
+
+    <!-- [화면 3] 채점 결과 및 PDF 저장 화면 -->
+    <section id="result-screen" class="hidden animate-card">
+      <!-- 상단 액션 버튼 바 (PDF 저장 / 인쇄 / 다시 풀기) -->
+      <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-lg border-2 border-blue-200 mb-5 flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
+        <div class="text-center sm:text-left">
+          <p class="font-title text-xl text-slate-800">퀴즈 채점이 완료되었어요! 🎊</p>
+          <p class="text-xs sm:text-sm text-slate-500">아래 버튼을 눌러 내 답안지를 PDF 파일로 저장하거나 인쇄할 수 있어요.</p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2.5 w-full sm:w-auto">
+          <button id="download-pdf-btn" class="flex-1 sm:flex-initial py-3 px-5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm sm:text-base shadow-md shadow-rose-500/25 transition flex items-center justify-center gap-2">
+            <span>📄 PDF 파일로 저장하기</span>
+          </button>
+          <button id="print-btn" class="py-3 px-4 rounded-2xl bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm sm:text-base shadow-sm transition flex items-center justify-center gap-1.5" title="브라우저 인쇄 창 열기">
+            <span>🖨️ 인쇄</span>
+          </button>
+          <button id="retry-btn" class="py-3 px-4 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold text-sm sm:text-base transition flex items-center justify-center gap-1.5">
+            <span>🔄 다시 풀기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 실제 PDF로 변환될 A4 학습지/결과 보고서 영역 -->
+      <div id="printable-area" class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-blue-200">
+        <!-- 보고서 상단 타이틀 & 학생 정보 표 -->
+        <div class="border-b-2 border-slate-800 pb-4 mb-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="inline-block bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded mb-1">초등학교 인공지능(AI) 데이터 학습 결과지</span>
+              <h2 class="font-title text-2xl sm:text-3xl text-slate-900">🤖 생활 속 AI 기기와 데이터 탐구 보고서</h2>
+            </div>
+            <div class="text-right text-xs sm:text-sm text-slate-600 font-medium">
+              <p id="report-date">제출일: 2026년 00월 00일</p>
+            </div>
+          </div>
+
+          <!-- 학생 인적사항 및 점수 요약 박스 -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-slate-50 rounded-2xl p-4 border-2 border-slate-200 items-center">
+            <div class="sm:col-span-7 space-y-1.5">
+              <div class="flex items-center gap-2 text-base sm:text-lg">
+                <span class="font-bold text-slate-500 w-20">소속/이름:</span>
+                <span id="report-student-info" class="font-black text-slate-900 text-lg sm:text-xl">4학년 3반 12번 김하늘</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm sm:text-base">
+                <span class="font-bold text-slate-500 w-20">탐구 결과:</span>
+                <span id="report-feedback-msg" class="font-bold text-blue-700">훌륭해요! AI 데이터 박사님 수준이에요!</span>
+              </div>
+            </div>
+
+            <div class="sm:col-span-5 flex items-center justify-around bg-white rounded-xl p-3 border-2 border-blue-200">
+              <div class="text-center">
+                <span class="block text-xs font-bold text-slate-500">맞힌 개수</span>
+                <span id="report-correct-count" class="font-title text-2xl sm:text-3xl text-emerald-600">10 / 10</span>
+              </div>
+              <div class="h-10 w-0.5 bg-slate-200"></div>
+              <div class="text-center">
+                <span class="block text-xs font-bold text-slate-500">최종 점수</span>
+                <span id="report-total-score" class="font-title text-3xl sm:text-4xl text-blue-600">100점</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 문항별 상세 채점 내역 리스트 -->
+        <div>
+          <h3 class="font-title text-xl text-slate-800 mb-3 flex items-center gap-2">
+            <span>📋 문항별 내 답안 및 선생님 해설</span>
+          </h3>
+          <div id="result-items-list" class="space-y-3.5">
+            <!-- JS로 10개 문항 결과 카드 동적 생성 -->
+          </div>
+        </div>
+
+        <!-- 보고서 하단 푸터 -->
+        <div class="mt-6 pt-4 border-t border-slate-200 text-center text-xs text-slate-500">
+          인공지능(AI)은 우리가 입력해 주는 다양한 <strong>데이터(소리, 사진, 글자, 움직임 등)</strong>를 학습하여 똑똑해집니다.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /**
+     * 초등학생용 AI 데이터 퀴즈 문항 데이터 (총 10문항: 객관식 5 + 주관식 5)
+     */
+    const QUIZ_DATA = [
+      // [1단계: 객관식 5문제]
+      {
+        id: 1,
+        stage: 1,
+        type: 'multiple',
+        device: 'AI 스피커',
+        emoji: '🔊',
+        question: "거실에 있는 'AI 스피커'가 우리의 말을 알아듣고 노래를 틀어주려면 어떤 데이터가 필요할까요?",
+        options: [
+          "사람의 목소리(소리) 데이터",
+          "강아지의 발바닥 모양 데이터",
+          "오늘 점심 급식 메뉴 사진 데이터",
+          "냉장고 속 우유의 유통기한 데이터"
+        ],
+        correctIndex: 0,
+        answerText: "사람의 목소리(소리) 데이터",
+        explanation: "AI 스피커는 마이크를 통해 들어오는 사람들의 다양한 목소리(음성) 데이터를 학습해서 말의 뜻을 이해해요."
+      },
+      {
+        id: 2,
+        stage: 1,
+        type: 'multiple',
+        device: 'AI 로봇 청소기',
+        emoji: '🧹',
+        question: "스스로 바닥을 돌아다니며 청소하는 'AI 로봇 청소기'가 벽이나 장난감에 부딪히지 않으려면 어떤 데이터가 필요할까요?",
+        options: [
+          "좋아하는 음악 목록 데이터",
+          "집 안의 구조와 장애물 위치 데이터",
+          "가족들의 생일 날짜 데이터",
+          "바깥 날씨와 미세먼지 데이터"
+        ],
+        correctIndex: 1,
+        answerText: "집 안의 구조와 장애물 위치 데이터",
+        explanation: "로봇 청소기는 센서와 카메라로 모은 집 안의 지도(공간)와 장애물 위치 데이터를 이용해 부딪히지 않고 길을 찾아요."
+      },
+      {
+        id: 3,
+        stage: 1,
+        type: 'multiple',
+        device: 'AI 영상 추천 서비스',
+        emoji: '📺',
+        question: "유튜브나 넷플릭스 같은 'AI 영상 추천 서비스'가 내가 좋아할 만한 영상을 딱 맞게 추천해 주려면 어떤 데이터가 필요할까요?",
+        options: [
+          "내가 그동안 끝까지 본 영상과 '좋아요'를 누른 기록",
+          "내 스마트폰의 배터리 잔량 데이터",
+          "내가 어제 걸은 걸음 수 데이터",
+          "우리 집 와이파이 비밀번호 데이터"
+        ],
+        correctIndex: 0,
+        answerText: "내가 그동안 끝까지 본 영상과 '좋아요'를 누른 기록",
+        explanation: "내가 어떤 영상을 오래 보았는지, 무엇을 검색했는지(시청 기록 데이터)를 분석해서 취향에 맞는 영상을 찾아줘요."
+      },
+      {
+        id: 4,
+        stage: 1,
+        type: 'multiple',
+        device: 'AI 얼굴 인식 기능',
+        emoji: '📱',
+        question: "스마트폰 카메라로 내 얼굴을 비추면 자동으로 잠금이 풀리는 'AI 얼굴 인식 기능'에 들어가는 데이터는 무엇일까요?",
+        options: [
+          "내 목소리의 높낮이 데이터",
+          "내 눈·코·입의 위치와 얼굴 생김새 데이터",
+          "내가 자주 쓰는 이모티콘 데이터",
+          "내 손가락 지문 모양 데이터"
+        ],
+        correctIndex: 1,
+        answerText: "내 눈·코·입의 위치와 얼굴 생김새 데이터",
+        explanation: "카메라는 내 얼굴의 생김새(이미지 데이터)를 숫자로 바꾸어 저장해 두고, 잠금을 풀 때마다 비교해요."
+      },
+      {
+        id: 5,
+        stage: 1,
+        type: 'multiple',
+        device: 'AI 번역기 앱',
+        emoji: '🌐',
+        question: "사진 속 글자를 번역해 주는 'AI 번역기 앱'이 외국어 간판을 한국어로 바꾸려면 어떤 데이터가 가장 먼저 들어가야 할까요?",
+        options: [
+          "간판을 찍은 사진과 글자 데이터",
+          "주변의 자동차 경적 소리 데이터",
+          "스마트폰의 화면 밝기 데이터",
+          "현재 위치의 온도 데이터"
+        ],
+        correctIndex: 0,
+        answerText: "간판을 찍은 사진과 글자 데이터",
+        explanation: "번역기 AI는 카메라로 찍힌 이미지 속 글자(텍스트) 데이터를 먼저 읽어낸 뒤, 학습한 언어 데이터와 연결해 번역해 줘요."
+      },
+
+      // [2단계: 주관식 5문제]
+      {
+        id: 6,
+        stage: 2,
+        type: 'short',
+        device: '자율주행 자동차',
+        emoji: '🚗',
+        question: "'자율주행 자동차'가 신호등의 빨간불을 보고 멈추기 위해 카메라로 입력받는 데이터는 무엇일까요?",
+        hint: "자동차의 '눈(카메라)'이 도로 위에서 빨강·노랑·초록으로 색깔이 바뀌는 장치의 모습을 찍어 확인해요.",
+        representativeAnswer: "신호등 사진",
+        acceptedKeywords: ["신호등사진", "신호등", "도로사진", "영상", "이미지", "사진", "신호", "교통신호"],
+        explanation: "자율주행 자동차는 카메라 센서로 도로 위의 신호등 사진(영상) 데이터를 실시간으로 입력받아 빨간불과 초록불을 구별해요."
+      },
+      {
+        id: 7,
+        stage: 2,
+        type: 'short',
+        device: '스마트 워치(시계)',
+        emoji: '⌚',
+        question: "'스마트 워치(시계)'가 내가 밤에 잠을 잘 잤는지 분석하기 위해 손목에서 모으는 데이터는 무엇일까요?",
+        hint: "손목에 닿는 시계 뒷면의 빛 센서가 몸속 피가 뛰는 횟수나 밤사이 뒤척임을 측정해요.",
+        representativeAnswer: "심장 박동수",
+        acceptedKeywords: ["심장박동수", "심박수", "움직임", "수면시간", "맥박", "심장박동", "심장", "수면"],
+        explanation: "스마트 워치는 센서를 통해 잠자는 동안의 심장 박동수(심박수)와 뒤척임(움직임) 데이터를 모아 수면 상태를 분석해요."
+      },
+      {
+        id: 8,
+        stage: 2,
+        type: 'short',
+        device: 'AI 날씨 예보 시스템',
+        emoji: '🌦️',
+        question: "'AI 날씨 예보 시스템'이 내일 비가 올지 예측하기 위해 기상 관측소와 인공위성에서 모으는 데이터는 무엇일까요?",
+        hint: "하늘 위 인공위성이 찍은 하늘의 모습과 관측소에서 재는 공기의 차갑고 따뜻한 정도를 떠올려 보세요.",
+        representativeAnswer: "기온과 구름 사진",
+        acceptedKeywords: ["기온과구름사진", "날씨", "기온", "습도", "바람", "위성사진", "구름", "구름사진", "온도", "기상"],
+        explanation: "AI 날씨 예보는 전국에서 측정한 기온, 습도, 바람과 인공위성이 찍은 구름 사진 데이터를 종합해 내일 날씨를 예측해요."
+      },
+      {
+        id: 9,
+        stage: 2,
+        type: 'short',
+        device: '스마트폰 음성 비서',
+        emoji: '🗣️',
+        question: "'스마트폰 음성 비서(빅스비, 시리)'를 부를 때 마이크로 들어가는 데이터는 무엇일까요?",
+        hint: "스마트폰 아래쪽의 '마이크' 구멍으로 들어가는 나의 무엇일까요?",
+        representativeAnswer: "목소리",
+        acceptedKeywords: ["목소리", "음성", "소리", "말소리", "말"],
+        explanation: "스마트폰 음성 비서는 마이크를 통해 들어오는 사용자의 목소리(음성 데이터)를 글자로 바꾼 뒤 명령을 실행해요."
+      },
+      {
+        id: 10,
+        stage: 2,
+        type: 'short',
+        device: 'AI 맞춤법 검사기',
+        emoji: '📝',
+        question: "'AI 맞춤법 검사기'가 틀린 글자를 바르게 고쳐주기 위해 미리 많이 학습한 데이터는 무엇일까요?",
+        hint: "국어사전이나 동화책 속에 가득 적혀 있는 '이것'들을 아주 많이 읽고 공부했어요.",
+        representativeAnswer: "글자",
+        acceptedKeywords: ["글자", "텍스트", "단어", "문장", "책", "글", "맞춤법", "한글", "문서"],
+        explanation: "AI 맞춤법 검사기는 수많은 책과 글 속에 있는 올바른 글자(텍스트·문장) 데이터를 학습해서 어색한 표현을 찾아 고쳐줘요."
+      }
+    ];
+
+    /**
+     * 앱 상태 관리 객체
+     */
+    const appState = {
+      student: {
+        grade: '6',
+        classNum: '',
+        number: '',
+        name: ''
+      },
+      currentIndex: 0,
+      // 사용자 답안 저장 (객관식: 선택 인덱스 0~3, 주관식: 입력 문자열, 미응답: null)
+      userAnswers: Array(QUIZ_DATA.length).fill(null),
+      gradedResults: []
+    };
+
+    /**
+     * DOM 요소 참조
+     */
+    const screens = {
+      start: document.getElementById('start-screen'),
+      quiz: document.getElementById('quiz-screen'),
+      result: document.getElementById('result-screen')
+    };
+
+    /**
+     * 퀴즈 시작 공통 처리 함수
+     */
+    function startQuizWithStudent(grade, classNum, number, name) {
+      appState.student = { grade, classNum, number, name };
+      appState.userAnswers = Array(QUIZ_DATA.length).fill(null);
+
+      // 상단 학생 배지 표시
+      const badge = document.getElementById('header-student-badge');
+      document.getElementById('badge-text').textContent = `${grade}학년 ${classNum}반 ${number}번 ${name}`;
+      badge.classList.remove('hidden');
+
+      initQuestionNavDots();
+      renderQuestion(0);
+      switchScreen('quiz');
+    }
+
+    /**
+     * 퀴즈 시작 버튼 이벤트
+     */
+    document.getElementById('start-quiz-btn').addEventListener('click', () => {
+      const grade = '6';
+      const classNum = document.getElementById('input-class').value.trim();
+      const number = document.getElementById('input-number').value.trim();
+      const name = document.getElementById('input-name').value.trim();
+
+      if (!classNum || !number || !name) {
+        showModal({
+          icon: '✏️',
+          title: '학생 정보를 적어주세요!',
+          message: '결과지와 PDF 파일에 이름이 멋지게 나오도록<br><strong>반, 번호, 이름</strong>을 모두 입력해 주세요!'
+        });
+        return;
+      }
+
+      startQuizWithStudent(grade, classNum, number, name);
+    });
+
+    /**
+     * 상단 문항 번호 빠른 이동 버튼(1~10) 생성 및 업데이트
+     */
+    function initQuestionNavDots() {
+      const container = document.getElementById('question-nav-dots');
+      container.innerHTML = '';
+
+      QUIZ_DATA.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = q.id;
+        btn.className = 'h-8 sm:h-9 rounded-xl font-bold text-xs sm:text-sm border transition flex items-center justify-center';
+        btn.addEventListener('click', () => {
+          saveCurrentShortAnswer();
+          renderQuestion(idx);
+        });
+        container.appendChild(btn);
+      });
+      updateQuestionNavDots();
+    }
+
+    function updateQuestionNavDots() {
+      const container = document.getElementById('question-nav-dots');
+      const buttons = container.querySelectorAll('button');
+      let answeredCount = 0;
+
+      buttons.forEach((btn, idx) => {
+        const ans = appState.userAnswers[idx];
+        const isAnswered = ans !== null && String(ans).trim() !== '';
+        if (isAnswered) answeredCount++;
+
+        const isCurrent = idx === appState.currentIndex;
+        btn.className = 'h-8 sm:h-9 rounded-xl font-bold text-xs sm:text-sm border-2 transition flex items-center justify-center ';
+
+        if (isCurrent) {
+          btn.className += 'bg-blue-600 text-white border-blue-700 scale-105 shadow-sm';
+        } else if (isAnswered) {
+          btn.className += 'bg-emerald-100 text-emerald-800 border-emerald-400';
+        } else {
+          btn.className += 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100';
+        }
+      });
+
+      document.getElementById('answered-count-label').textContent = `작성 완료: ${answeredCount} / ${QUIZ_DATA.length}문제`;
+    }
+
+    /**
+     * 현재 주관식 입력값을 상태에 저장
+     */
+    function saveCurrentShortAnswer() {
+      const currentQ = QUIZ_DATA[appState.currentIndex];
+      if (currentQ && currentQ.type === 'short') {
+        const val = document.getElementById('sa-answer-input').value;
+        appState.userAnswers[appState.currentIndex] = val.trim() === '' ? null : val;
+      }
+    }
+
+    /**
+     * 특정 인덱스의 문제 렌더링
+     */
+    function renderQuestion(index) {
+      appState.currentIndex = index;
+      const q = QUIZ_DATA[index];
+
+      // 1단계 / 2단계 탭 활성화 상태 갱신
+      const tab1 = document.getElementById('tab-stage-1');
+      const tab2 = document.getElementById('tab-stage-2');
+      if (q.stage === 1) {
+        tab1.className = 'flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow';
+        tab2.className = 'flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200';
+      } else {
+        tab1.className = 'flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200';
+        tab2.className = 'flex-1 py-2.5 px-3 rounded-2xl font-title text-base sm:text-lg transition flex items-center justify-center gap-1.5 bg-amber-500 text-white shadow';
+      }
+
+      // 진행률 바 갱신
+      document.getElementById('progress-label').textContent = `문제 ${q.id} / ${QUIZ_DATA.length}`;
+      document.getElementById('progress-bar').style.width = `${((index + 1) / QUIZ_DATA.length) * 100}%`;
+
+      // 카드 배지 및 질문 세팅
+      const stageBadge = document.getElementById('q-stage-badge');
+      if (q.stage === 1) {
+        stageBadge.textContent = '1단계 · 객관식 (보기 선택)';
+        stageBadge.className = 'inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-700';
+      } else {
+        stageBadge.textContent = '2단계 · 주관식 (직접 입력)';
+        stageBadge.className = 'inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-800';
+      }
+
+      document.getElementById('q-device-tag').textContent = `${q.emoji} ${q.device}`;
+      document.getElementById('q-emoji').textContent = q.emoji;
+      document.getElementById('q-number-title').textContent = `문제 ${q.id}.`;
+      document.getElementById('q-text').textContent = q.question;
+
+      const mcContainer = document.getElementById('mc-options-container');
+      const saContainer = document.getElementById('sa-input-container');
+
+      if (q.type === 'multiple') {
+        mcContainer.classList.remove('hidden');
+        saContainer.classList.add('hidden');
+        mcContainer.innerHTML = '';
+
+        const numLabels = ['①', '②', '③', '④'];
+        q.options.forEach((optText, optIdx) => {
+          const isSelected = appState.userAnswers[index] === optIdx;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `option-btn w-full text-left p-4 rounded-2xl border-2 font-bold text-base sm:text-lg flex items-center gap-3.5 ${
+            isSelected
+              ? 'selected'
+              : 'bg-slate-50 hover:bg-blue-50 border-slate-200 hover:border-blue-300 text-slate-800'
+          }`;
+
+          btn.innerHTML = `
+            <span class="option-badge w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
+              isSelected ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-700'
+            }">${numLabels[optIdx]}</span>
+            <span>${optText}</span>
+          `;
+
+          btn.addEventListener('click', () => {
+            appState.userAnswers[index] = optIdx;
+            renderQuestion(index);
+          });
+
+          mcContainer.appendChild(btn);
+        });
+      } else {
+        mcContainer.classList.add('hidden');
+        saContainer.classList.remove('hidden');
+
+        const inputEl = document.getElementById('sa-answer-input');
+        inputEl.value = appState.userAnswers[index] || '';
+      }
+
+      // 하단 이전/다음/제출 버튼 상태 제어
+      document.getElementById('prev-q-btn').disabled = index === 0;
+
+      const nextBtn = document.getElementById('next-q-btn');
+      const submitBtn = document.getElementById('submit-quiz-btn');
+
+      if (index === QUIZ_DATA.length - 1) {
+        nextBtn.classList.add('hidden');
+        submitBtn.classList.remove('hidden');
+      } else {
+        nextBtn.classList.remove('hidden');
+        submitBtn.classList.add('hidden');
+      }
+
+      updateQuestionNavDots();
+    }
+
+    // 객관식 키보드 단축키 (1~4번 키 선택 및 좌우 방향키 이동 지원)
+    document.addEventListener('keydown', (e) => {
+      if (screens.quiz.classList.contains('hidden')) return;
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+      const currentQ = QUIZ_DATA[appState.currentIndex];
+      if (currentQ.type === 'multiple' && ['1', '2', '3', '4'].includes(e.key)) {
+        const optIdx = Number(e.key) - 1;
+        if (optIdx >= 0 && optIdx < currentQ.options.length) {
+          appState.userAnswers[appState.currentIndex] = optIdx;
+          renderQuestion(appState.currentIndex);
+        }
+      }
+    });
+
+    // 주관식 실시간 입력 저장 이벤트
+    document.getElementById('sa-answer-input').addEventListener('input', (e) => {
+      const val = e.target.value;
+      appState.userAnswers[appState.currentIndex] = val.trim() === '' ? null : val;
+      updateQuestionNavDots();
+    });
+
+    // 주관식 엔터키로 다음 문제 이동 지원
+    document.getElementById('sa-answer-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (appState.currentIndex < QUIZ_DATA.length - 1) {
+          renderQuestion(appState.currentIndex + 1);
+        } else {
+          handleSubmitQuiz();
+        }
+      }
+    });
+
+    // 상단 단계 탭 클릭 이벤트
+    document.getElementById('tab-stage-1').addEventListener('click', () => {
+      saveCurrentShortAnswer();
+      renderQuestion(0);
+    });
+    document.getElementById('tab-stage-2').addEventListener('click', () => {
+      saveCurrentShortAnswer();
+      renderQuestion(5);
+    });
+
+    // 이전/다음 버튼 이벤트
+    document.getElementById('prev-q-btn').addEventListener('click', () => {
+      saveCurrentShortAnswer();
+      if (appState.currentIndex > 0) {
+        renderQuestion(appState.currentIndex - 1);
+      }
+    });
+
+    document.getElementById('next-q-btn').addEventListener('click', () => {
+      saveCurrentShortAnswer();
+      if (appState.currentIndex < QUIZ_DATA.length - 1) {
+        renderQuestion(appState.currentIndex + 1);
+      }
+    });
+
+    /**
+     * 주관식 유사 정답 판별 함수
+     * 공백 및 특수문자를 제거하고 소문자화하여 대표정답/유사정답 키워드 포함 여부 확인
+     */
+    function checkShortAnswer(userInput, questionObj) {
+      if (!userInput || typeof userInput !== 'string') return false;
+      const normalizedUser = userInput.replace(/[\s.,!?'"()·-]/g, '').toLowerCase();
+      if (!normalizedUser) return false;
+
+      // 1. 대표 정답과 정확히 일치하거나 포함되는지 확인
+      const normalizedRep = questionObj.representativeAnswer.replace(/[\s.,!?'"()·-]/g, '').toLowerCase();
+      if (normalizedUser === normalizedRep || normalizedUser.includes(normalizedRep)) {
+        return true;
+      }
+
+      // 2. 인정 유사 정답 키워드 리스트 검사
+      return questionObj.acceptedKeywords.some(keyword => {
+        const normKey = keyword.replace(/[\s.,!?'"()·-]/g, '').toLowerCase();
+        return normalizedUser === normKey || normalizedUser.includes(normKey);
+      });
+    }
+
+    /**
+     * 퀴즈 최종 제출 처리
+     */
+    function handleSubmitQuiz() {
+      saveCurrentShortAnswer();
+
+      // 풀지 않은 문제가 있는지 확인
+      const unansweredNumbers = [];
+      appState.userAnswers.forEach((ans, idx) => {
+        if (ans === null || String(ans).trim() === '') {
+          unansweredNumbers.push(idx + 1);
+        }
+      });
+
+      if (unansweredNumbers.length > 0) {
+        showModal({
+          icon: '🤔',
+          title: '아직 안 푼 문제가 있어요!',
+          message: `<strong>${unansweredNumbers.join('번, ')}번</strong> 문제가 비어 있어요.<br>이대로 채점할까요, 아니면 돌아가서 마저 풀까요?`,
+          showCancel: true,
+          confirmText: '이대로 채점하기',
+          onConfirm: () => gradeAndShowResult()
+        });
+      } else {
+        gradeAndShowResult();
+      }
+    }
+
+    document.getElementById('submit-quiz-btn').addEventListener('click', handleSubmitQuiz);
+
+    /**
+     * 채점 및 결과 보고서 화면 렌더링
+     */
+    function gradeAndShowResult() {
+      let correctCount = 0;
+      const results = QUIZ_DATA.map((q, idx) => {
+        const userAns = appState.userAnswers[idx];
+        let isCorrect = false;
+        let userDisplayText = '(미작성)';
+        let correctDisplayText = '';
+
+        if (q.type === 'multiple') {
+          if (userAns !== null && q.options[userAns] !== undefined) {
+            userDisplayText = q.options[userAns];
+            isCorrect = userAns === q.correctIndex;
+          }
+          correctDisplayText = q.answerText;
+        } else {
+          if (userAns !== null && String(userAns).trim() !== '') {
+            userDisplayText = String(userAns).trim();
+            isCorrect = checkShortAnswer(userDisplayText, q);
+          }
+          const subExamples = q.acceptedKeywords.slice(0, 3).join(', ');
+          correctDisplayText = `${q.representativeAnswer} (유사 인정: ${subExamples} 등)`;
+        }
+
+        if (isCorrect) correctCount++;
+
+        return {
+          ...q,
+          userDisplayText,
+          correctDisplayText,
+          isCorrect
+        };
+      });
+
+      appState.gradedResults = results;
+      const totalScore = correctCount * 10;
+
+      // 날짜 포맷 (YYYY년 MM월 DD일)
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}년 ${String(now.getMonth() + 1).padStart(2, '0')}월 ${String(now.getDate()).padStart(2, '0')}일`;
+      document.getElementById('report-date').textContent = `제출일: ${dateStr}`;
+
+      // 학생 정보 및 점수 표시
+      const { grade, classNum, number, name } = appState.student;
+      document.getElementById('report-student-info').textContent = `${grade}학년 ${classNum}반 ${number}번 ${name}`;
+      document.getElementById('report-correct-count').textContent = `${correctCount} / ${QUIZ_DATA.length}`;
+      document.getElementById('report-total-score').textContent = `${totalScore}점`;
+
+      // 점수별 칭찬 피드백 메시지
+      let feedback = '';
+      if (totalScore === 100) {
+        feedback = '🏆 와우! 만점이에요! 완벽한 AI 데이터 박사님!';
+      } else if (totalScore >= 80) {
+        feedback = '🌟 아주 훌륭해요! 생활 속 AI 데이터의 원리를 잘 이해했네요!';
+      } else if (totalScore >= 60) {
+        feedback = '👍 잘했어요! 틀린 문제의 해설을 읽으면 더 완벽해질 거예요!';
+      } else {
+        feedback = '💪 좋은 출발이에요! 아래 해설을 보며 AI 데이터를 다시 알아볼까요?';
+      }
+      document.getElementById('report-feedback-msg').textContent = feedback;
+
+      // 문항별 결과 카드 생성
+      const listContainer = document.getElementById('result-items-list');
+      listContainer.innerHTML = '';
+
+      results.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = `result-item rounded-2xl p-4 border-2 ${
+          item.isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+        }`;
+
+        const badgeHtml = item.isCorrect
+          ? `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs sm:text-sm shrink-0">⭕ 정답 (+10점)</span>`
+          : `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 text-white font-black text-xs sm:text-sm shrink-0">❌ 오답 (0점)</span>`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-title text-lg text-slate-800">Q${item.id}. [${item.device}]</span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">${item.stage === 1 ? '객관식' : '주관식'}</span>
+            </div>
+            ${badgeHtml}
+          </div>
+          <p class="text-sm sm:text-base font-bold text-slate-800 mb-3">${item.question}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm mb-2.5">
+            <div class="bg-white rounded-xl p-2.5 border ${item.isCorrect ? 'border-emerald-300' : 'border-rose-300'}">
+              <span class="font-bold text-slate-500 block mb-0.5">✏️ 내가 적은 답:</span>
+              <span class="font-black ${item.isCorrect ? 'text-emerald-700' : 'text-rose-600'} text-sm sm:text-base">${escapeHtml(item.userDisplayText)}</span>
+            </div>
+            <div class="bg-white rounded-xl p-2.5 border border-blue-200">
+              <span class="font-bold text-slate-500 block mb-0.5">✅ 모범 정답:</span>
+              <span class="font-black text-blue-700 text-sm sm:text-base">${escapeHtml(item.correctDisplayText)}</span>
+            </div>
+          </div>
+          <div class="bg-white/90 rounded-xl p-2.5 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <span class="font-bold text-amber-700">💡 쉬운 해설:</span> ${escapeHtml(item.explanation)}
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+
+      switchScreen('result');
+    }
+
+    /**
+     * XSS 방지용 HTML 이스케이프 헬퍼
+     */
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * PDF 파일로 저장하기 (html2pdf.js 활용 - 한글 깨짐 없이 A4 비율로 고해상도 저장)
+     */
+    document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('download-pdf-btn');
+      const originalHtml = btn.innerHTML;
+      const printableArea = document.getElementById('printable-area');
+
+      // html2pdf 로드 확인
+      if (typeof html2pdf === 'undefined') {
+        showModal({
+          icon: '🖨️',
+          title: '인쇄 창으로 PDF 저장하기',
+          message: 'PDF 변환 도구를 불러오지 못해 브라우저 인쇄 창을 열어드릴게요.<br>대상(프린터)에서 <strong>[PDF로 저장]</strong>을 선택해 주세요!',
+          onConfirm: () => window.print()
+        });
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ PDF 파일 만드는 중...</span>';
+
+        const { grade, classNum, number, name } = appState.student;
+        const safeName = name.replace(/[^가-힣a-zA-Z0-9]/g, '');
+        const filename = `AI데이터퀴즈_${grade}학년${classNum}반${number}번_${safeName}.pdf`;
+
+        // 캡처 시 A4 폭에 깔끔하게 맞춰지도록 임시 클래스 부여
+        printableArea.classList.add('pdf-capturing');
+
+        const opt = {
+          margin: [8, 8, 8, 8], // 상하좌우 8mm 여백
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            scrollY: 0
+          },
+          jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+          },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        await html2pdf().set(opt).from(printableArea).save();
+
+        printableArea.classList.remove('pdf-capturing');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+
+        showModal({
+          icon: '🎉',
+          title: 'PDF 저장 완료!',
+          message: `<strong>${filename}</strong> 파일이 다운로드 폴더에 저장되었어요!`
+        });
+      } catch (err) {
+        console.error('PDF 생성 오류:', err);
+        printableArea.classList.remove('pdf-capturing');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+
+        showModal({
+          icon: '🖨️',
+          title: '인쇄 기능으로 저장해 보세요',
+          message: '자동 다운로드 중 문제가 발생했어요. 대신 <strong>[인쇄]</strong> 창을 열어드릴게요.<br>프린터 선택에서 <strong>[PDF로 저장]</strong>을 누르면 똑같이 저장할 수 있어요!',
+          onConfirm: () => window.print()
+        });
+      }
+    });
+
+    /**
+     * 브라우저 인쇄 버튼 (@media print 스타일 연동)
+     */
+    document.getElementById('print-btn').addEventListener('click', () => {
+      window.print();
+    });
+
+    /**
+     * 다시 풀기 버튼
+     */
+    document.getElementById('retry-btn').addEventListener('click', () => {
+      showModal({
+        icon: '🔄',
+        title: '처음부터 다시 풀까요?',
+        message: '지금까지 작성한 답안이 초기화되고<br>1번 문제부터 다시 시작합니다.',
+        showCancel: true,
+        confirmText: '네, 다시 풀래요!',
+        onConfirm: () => {
+          appState.userAnswers = Array(QUIZ_DATA.length).fill(null);
+          appState.currentIndex = 0;
+          initQuestionNavDots();
+          renderQuestion(0);
+          switchScreen('quiz');
+        }
+      });
+    });
+
+    /**
+     * 화면 전환 함수 (start / quiz / result)
+     */
+    function switchScreen(screenKey) {
+      Object.values(screens).forEach((el) => {
+        if (el) el.classList.add('hidden');
+      });
+      if (screens[screenKey]) {
+        screens[screenKey].classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    /**
+     * 커스텀 알림 모달 표시 함수 (alert/confirm 대체)
+     */
+    function showModal({
+      icon = '💡',
+      title = '안내',
+      message = '',
+      showCancel = false,
+      confirmText = '확인',
+      cancelText = '취소',
+      onConfirm = null
+    }) {
+      const modal = document.getElementById('custom-modal');
+      const iconEl = document.getElementById('modal-icon');
+      const titleEl = document.getElementById('modal-title');
+      const messageEl = document.getElementById('modal-message');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+
+      iconEl.textContent = icon;
+      titleEl.textContent = title;
+      messageEl.innerHTML = message;
+      confirmBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+
+      if (showCancel) {
+        cancelBtn.classList.remove('hidden');
+      } else {
+        cancelBtn.classList.add('hidden');
+      }
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      confirmBtn.onclick = () => {
+        closeModal();
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+      };
+
+      cancelBtn.onclick = () => {
+        closeModal();
+      };
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  </script>
+</body>
+</html>
