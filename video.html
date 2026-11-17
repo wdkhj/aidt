@@ -1,0 +1,3066 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>자막 &amp; 내레이션 스튜디오</title>
+  <style>
+    /* ==========================================================================
+       1. 디자인 토큰 & 리셋 (외부 CSS 의존성 0% - 완전 자체 내장 스타일)
+       ========================================================================== */
+    :root {
+      --bg-app: #090d16;
+      --bg-header: #0f1623;
+      --bg-panel: #111827;
+      --bg-card: #182234;
+      --bg-card-hover: #1e293b;
+      --bg-input: #0b111e;
+      --border-subtle: #1f2937;
+      --border-strong: #334155;
+
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --accent-indigo: #6366f1;
+      --accent-indigo-hover: #4f46e5;
+      --accent-purple: #8b5cf6;
+      --accent-emerald: #10b981;
+      --accent-emerald-hover: #059669;
+      --accent-sky: #0ea5e9;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-rose-hover: #e11d48;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* 모든 SVG 아이콘의 기본 크기를 명시적으로 고정하여 거대화 방지 */
+    svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2b3648;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* ==========================================================================
+       2. 상단 헤더 (Height: 54px)
+       ========================================================================== */
+    .app-header {
+      height: 54px;
+      width: 100%;
+      background-color: var(--bg-header);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 20;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .brand-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.16);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-sm {
+      height: 28px;
+      padding: 0 9px;
+      font-size: 11.5px;
+      border-radius: 6px;
+    }
+
+    .btn-ghost-purple {
+      background: rgba(139, 92, 246, 0.16);
+      color: #ddd6fe;
+      border: 1px solid rgba(139, 92, 246, 0.38);
+    }
+    .btn-ghost-purple:hover {
+      background: rgba(139, 92, 246, 0.28);
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+    .btn-secondary:hover {
+      background: #273549;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-indigo), #4f46e5);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(79, 70, 229, 0.35);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+    }
+
+    .btn-emerald {
+      background: var(--accent-emerald);
+      color: #042f2e;
+      font-weight: 700;
+    }
+    .btn-emerald:hover {
+      background: var(--accent-emerald-hover);
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background: var(--accent-rose);
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .btn-danger:hover {
+      background: var(--accent-rose-hover);
+    }
+
+    /* ==========================================================================
+       3. 메인 3단 스튜디오 레이아웃 (Height: calc(100vh - 54px))
+       ========================================================================== */
+    .workspace {
+      display: flex;
+      width: 100%;
+      height: calc(100vh - 54px);
+      overflow: hidden;
+    }
+
+    /* 좌측 컬럼: 프리뷰 스테이지 + 컨트롤 바 + 멀티트랙 타임라인 */
+    .col-left {
+      flex: 1 1 auto;
+      min-width: 440px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #060911;
+      border-right: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    /* 중앙 컬럼: 장면 구성(빈 장면·제목) + 자막 대본 편집 */
+    .col-mid {
+      width: 390px;
+      flex: 0 0 390px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    /* 우측 컬럼: 내레이션 녹음 & 오디오 + 자막 스타일 */
+    .col-right {
+      width: 330px;
+      flex: 0 0 330px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-panel);
+      overflow-y: auto;
+    }
+
+    /* ==========================================================================
+       4. 좌측 컬럼 세부 UI (16:9 캔버스 스테이지 & 멀티 트랙 타임라인)
+       ========================================================================== */
+    .stage-area {
+      flex: 1 1 auto;
+      min-height: 220px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle at center, #111827 0%, #05080f 100%);
+      overflow: hidden;
+    }
+
+    .stage-area.drag-over {
+      outline: 2px dashed var(--accent-indigo);
+      outline-offset: -8px;
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .canvas-frame {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #previewCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: #000000;
+      border-radius: var(--radius-md);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+      border: 1px solid #1e293b;
+      display: block;
+    }
+
+    /* 녹음 중 표시 뱃지 (좌상단) */
+    .rec-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(225, 29, 72, 0.92);
+      color: #ffffff;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.5);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      animation: pulseRec 1s infinite;
+    }
+
+    @keyframes pulseRec {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.8); }
+    }
+
+    /* 빈 상태 오버레이 */
+    .empty-overlay {
+      position: absolute;
+      inset: 16px;
+      border-radius: var(--radius-lg);
+      border: 1.5px dashed #334155;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      gap: 14px;
+      z-index: 5;
+    }
+
+    .empty-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-icon-box svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .empty-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .empty-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      max-width: 400px;
+    }
+
+    .empty-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    /* 재생 컨트롤 바 */
+    .transport-bar {
+      background: var(--bg-header);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .time-readout {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #cbd5e1;
+      background: var(--bg-input);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .scrub-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    /* 멀티 트랙 타임라인 패널 */
+    .timeline-panel {
+      height: 162px;
+      flex: 0 0 162px;
+      background: #0b101b;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      user-select: none;
+    }
+
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .track-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 32px;
+    }
+
+    .track-label {
+      width: 82px;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .track-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .track-lane {
+      flex: 1;
+      height: 100%;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .track-playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #f43f5e;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .clip-block {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 4px;
+      padding: 0 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .clip-block.blank {
+      background: linear-gradient(90deg, rgba(139, 92, 246, 0.75), rgba(99, 102, 241, 0.75));
+      color: #ffffff;
+    }
+
+    .clip-block.video {
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.65), rgba(2, 132, 199, 0.65));
+      color: #e0f2fe;
+    }
+
+    .sub-block {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      background: rgba(245, 158, 11, 0.35);
+      border: 1px solid rgba(245, 158, 11, 0.75);
+      color: #fef3c7;
+      border-radius: 4px;
+      padding: 0 5px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .narration-block {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      background: rgba(16, 185, 129, 0.25);
+      border: 1px solid rgba(16, 185, 129, 0.75);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #timelineWaveCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ==========================================================================
+       5. 중앙 & 우측 패널 공통 섹션 스타일
+       ========================================================================== */
+    .panel-section-top {
+      height: 44%;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    .panel-section-bottom {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.75);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .count-pill {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #1e293b;
+      color: #94a3b8;
+    }
+
+    .scroll-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 장면(빈 장면/제목) 카드 */
+    .scene-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .scene-card.blank-scene {
+      border-left: 3px solid var(--accent-purple);
+    }
+
+    .scene-card.video-scene {
+      border-left: 3px solid var(--accent-sky);
+    }
+
+    .scene-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .scene-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .scene-tag.blank {
+      background: rgba(139, 92, 246, 0.2);
+      color: #ddd6fe;
+    }
+
+    .scene-tag.video {
+      background: rgba(14, 165, 233, 0.2);
+      color: #bae6fd;
+    }
+
+    .icon-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .icon-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      background: #0f172a;
+      color: #94a3b8;
+      border: 1px solid #1e293b;
+      padding: 0;
+    }
+
+    .icon-btn:hover:not(:disabled) {
+      background: #1e293b;
+      color: #ffffff;
+    }
+
+    .icon-btn.danger:hover:not(:disabled) {
+      background: rgba(244, 63, 94, 0.2);
+      color: #fda4af;
+      border-color: rgba(244, 63, 94, 0.4);
+    }
+
+    .field-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid #283548;
+      border-radius: 6px;
+      padding: 6px 9px;
+      font-size: 12.5px;
+      color: #f8fafc;
+      outline: none;
+    }
+
+    .field-input:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    .scene-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
+    .mini-num-input {
+      width: 58px;
+      background: var(--bg-input);
+      border: 1px solid #283548;
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .mini-select {
+      background: var(--bg-input);
+      border: 1px solid #283548;
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-size: 11.5px;
+      color: #f8fafc;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .mini-select:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    .sub-input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-chip-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    input[type="color"] {
+      width: 22px;
+      height: 22px;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    /* 자막 카드 */
+    .sub-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .sub-card.active {
+      border-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+    }
+
+    .sub-time-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .time-range-inputs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .sub-textarea {
+      width: 100%;
+      min-height: 46px;
+      resize: vertical;
+      background: var(--bg-input);
+      border: 1px solid #283548;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #ffffff;
+      outline: none;
+    }
+
+    .sub-textarea:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    /* 우측 패널 블록 */
+    .right-block {
+      padding: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent-indigo);
+      cursor: pointer;
+    }
+
+    .meter-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #f59e0b, #f43f5e);
+      transition: width 0.06s linear;
+    }
+
+    .narration-status-card {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .control-val {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #93c5fd;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* ==========================================================================
+       6. 모달 & 토스트 알림
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 420px;
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-indigo), var(--accent-emerald));
+      transition: width 0.15s ease;
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 120;
+      pointer-events: none;
+    }
+
+    .toast-item {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-left: 4px solid var(--accent-indigo);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      animation: slideInToast 0.2s ease;
+    }
+
+    .toast-item.success { border-left-color: var(--accent-emerald); }
+    .toast-item.error { border-left-color: var(--accent-rose); }
+
+    @keyframes slideInToast {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- 숨겨진 미디어/파일 입력 요소 -->
+  <input type="file" id="videoFileInput" accept="video/*" class="hidden" />
+  <input type="file" id="audioFileInput" accept="audio/*" class="hidden" />
+  <video id="sourceVideo" playsinline crossorigin="anonymous" class="hidden"></video>
+  <audio id="narrationAudio" crossorigin="anonymous" class="hidden"></audio>
+
+  <!-- ========================================================================
+       1. 상단 헤더 (Height: 54px)
+       ======================================================================== -->
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="2" y="4" width="20" height="16" rx="3" />
+          <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none" />
+        </svg>
+      </div>
+      <span class="brand-title">자막 &amp; 내레이션 스튜디오</span>
+      <span class="brand-badge">OFFLINE-READY MP4</span>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnHeaderAddBlank" class="btn btn-ghost-purple" title="빈 장면(제목 카드) 추가">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+        </svg>
+        <span>빈 장면(제목) 추가</span>
+      </button>
+
+      <button id="btnHeaderSample" class="btn btn-secondary" title="샘플 영상과 자막 즉시 생성">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M10 8.5l6 3.5-6 3.5v-7z" fill="currentColor" stroke="none" />
+        </svg>
+        <span>샘플 불러오기</span>
+      </button>
+
+      <button id="btnHeaderOpenVideo" class="btn btn-secondary" title="내 컴퓨터에서 동영상 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v11m0-11L8 8m4-4l4 4" />
+        </svg>
+        <span>동영상 열기</span>
+      </button>
+
+      <button id="btnExportMp4" class="btn btn-primary" title="최종 MP4 파일로 렌더링 및 저장">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 15V4m0 11l-4-4m4 4l4-4" />
+        </svg>
+        <span>MP4 내보내기</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       2. 메인 3단 스튜디오 작업 영역
+       ======================================================================== -->
+  <main class="workspace">
+    <!-- [좌측 컬럼] 16:9 라이브 프리뷰 + 컨트롤 바 + 멀티 트랙 타임라인 -->
+    <section class="col-left">
+      <div id="stageDropZone" class="stage-area">
+        <!-- 16:9 캔버스 프레임 -->
+        <div id="canvasFrame" class="canvas-frame hidden">
+          <div id="recIndicator" class="rec-badge hidden">
+            <span class="rec-dot"></span>
+            <span id="recBadgeText">REC 녹음 중 00:00</span>
+          </div>
+          <canvas id="previewCanvas" width="1280" height="720"></canvas>
+        </div>
+
+        <!-- 초기 빈 화면 오버레이 -->
+        <div id="emptyOverlay" class="empty-overlay">
+          <div class="empty-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div class="empty-title">동영상을 드래그하거나 빈 장면(제목)으로 시작하세요</div>
+          <div class="empty-desc">
+            MP4, WebM, MOV 파일을 불러오거나 인트로 제목 카드를 먼저 만든 뒤 자막과 내레이션을 입혀 MP4로 저장할 수 있습니다.
+          </div>
+          <div class="empty-btn-row">
+            <button id="btnEmptySelectVideo" class="btn btn-primary">내 컴퓨터에서 동영상 선택</button>
+            <button id="btnEmptyStartBlank" class="btn btn-ghost-purple">빈 장면(제목)으로 시작</button>
+            <button id="btnEmptyStartSample" class="btn btn-secondary">샘플 영상으로 바로 시작</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 재생 컨트롤 바 -->
+      <div class="transport-bar">
+        <button id="btnPlayPause" class="btn btn-secondary btn-sm" style="min-width: 78px;">
+          <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" class="hidden">
+            <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+          </svg>
+          <span id="playBtnText">재생</span>
+        </button>
+
+        <button id="btnStopReset" class="btn btn-secondary btn-sm" title="처음(0초)으로 정지">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="1.5" />
+          </svg>
+          <span>정지</span>
+        </button>
+
+        <div class="time-readout">
+          <span id="currentTimeLabel">00:00.0</span> / <span id="totalTimeLabel">00:00.0</span>
+        </div>
+
+        <div class="scrub-wrapper">
+          <input type="range" id="timelineScrubber" min="0" max="10" step="0.05" value="0" />
+        </div>
+      </div>
+
+      <!-- 멀티 트랙 타임라인 패널 -->
+      <div class="timeline-panel">
+        <div class="timeline-header">
+          <span>멀티 트랙 타임라인 (트랙을 클릭하면 해당 위치로 이동합니다)</span>
+          <span id="timelineResolutionTag" style="font-family: var(--font-mono); color: #64748b;">1280 × 720 (16:9)</span>
+        </div>
+
+        <!-- Track 1: 장면/클립 트랙 -->
+        <div class="track-row">
+          <div class="track-label">
+            <span class="track-dot" style="background: var(--accent-purple);"></span>
+            <span>장면/클립</span>
+          </div>
+          <div id="trackLaneClips" class="track-lane">
+            <div id="clipsTrackContent"></div>
+            <div class="track-playhead" data-playhead></div>
+          </div>
+        </div>
+
+        <!-- Track 2: 자막 트랙 -->
+        <div class="track-row">
+          <div class="track-label">
+            <span class="track-dot" style="background: var(--accent-amber);"></span>
+            <span>자막 구간</span>
+          </div>
+          <div id="trackLaneSubs" class="track-lane">
+            <div id="subsTrackContent"></div>
+            <div class="track-playhead" data-playhead></div>
+          </div>
+        </div>
+
+        <!-- Track 3: 내레이션 트랙 -->
+        <div class="track-row">
+          <div class="track-label">
+            <span class="track-dot" style="background: var(--accent-emerald);"></span>
+            <span>내레이션</span>
+          </div>
+          <div id="trackLaneNarration" class="track-lane">
+            <div id="narrationTrackBlock" class="narration-block hidden">
+              <canvas id="timelineWaveCanvas"></canvas>
+            </div>
+            <div class="track-playhead" data-playhead></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- [중앙 컬럼] 장면 구성(빈 장면·제목) & 자막 대본 편집 -->
+    <section class="col-mid">
+      <!-- Section A: 장면 구성 -->
+      <div class="panel-section-top">
+        <div class="section-header">
+          <div class="section-title">
+            <span>장면 구성 (빈 장면 · 제목)</span>
+            <span id="sceneCountBadge" class="count-pill">0</span>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <button id="btnAddIntro" class="btn btn-ghost-purple btn-sm">+ 인트로 추가</button>
+            <button id="btnAddOutro" class="btn btn-secondary btn-sm">+ 아웃트로 추가</button>
+          </div>
+        </div>
+        <div id="sceneListContainer" class="scroll-list"></div>
+      </div>
+
+      <!-- Section B: 자막 대본 편집 -->
+      <div class="panel-section-bottom">
+        <div class="section-header">
+          <div class="section-title">
+            <span>자막 대본 편집</span>
+            <span id="subCountBadge" class="count-pill">0</span>
+          </div>
+          <button id="btnAddSubNow" class="btn btn-primary btn-sm">+ 현재 위치에 자막 추가</button>
+        </div>
+        <div id="subtitleListContainer" class="scroll-list"></div>
+      </div>
+    </section>
+
+    <!-- [우측 컬럼] 내레이션 녹음 & 오디오 + 자막 디자인 스타일 -->
+    <aside class="col-right">
+      <!-- Section A: 내레이션 녹음 & 오디오 -->
+      <div class="right-block">
+        <div class="section-title" style="margin-bottom: 2px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4m-4 0h8" />
+          </svg>
+          <span>내레이션 녹음 &amp; 오디오</span>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="chkRecordFromStart" checked />
+          <span>0초(처음)부터 영상 재생하며 녹음</span>
+        </label>
+
+        <div style="display: flex; gap: 6px;">
+          <button id="btnStartRecord" class="btn btn-emerald" style="flex: 1;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="6" />
+            </svg>
+            <span>영상 보며 녹음 시작</span>
+          </button>
+          <button id="btnStopRecord" class="btn btn-danger hidden" style="flex: 1;">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="1.5" />
+            </svg>
+            <span>녹음 중지</span>
+          </button>
+        </div>
+
+        <!-- 실시간 마이크 입력 레벨 미터 -->
+        <div class="meter-box">
+          <div class="meter-header">
+            <span>마이크 입력 레벨</span>
+            <span id="recTimerLabel" style="font-family: var(--font-mono);">대기 중</span>
+          </div>
+          <div class="meter-track">
+            <div id="micLevelFill" class="meter-fill"></div>
+          </div>
+        </div>
+
+        <button id="btnUploadAudio" class="btn btn-secondary" style="width: 100%;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+          </svg>
+          <span>오디오 파일 불러오기 (.mp3, .wav)</span>
+        </button>
+
+        <!-- 로드된 내레이션 정보 카드 -->
+        <div id="narrationInfoCard" class="narration-status-card hidden">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <span id="narrationNameLabel" style="font-size: 12px; font-weight: 700; color: #a7f3d0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              내레이션 트랙
+            </span>
+            <button id="btnDeleteNarration" class="icon-btn danger" title="내레이션 삭제">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: #cbd5e1;">
+            <span>내레이션 시작 오프셋 (초)</span>
+            <input type="number" id="inputNarrationOffset" step="0.1" min="0" value="0.0" class="mini-num-input" />
+          </div>
+        </div>
+
+        <!-- 볼륨 믹서 슬라이더 -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>원본 영상 볼륨 (%)</span>
+            <span id="valVideoVol" class="control-val">80%</span>
+          </div>
+          <input type="range" id="sliderVideoVol" min="0" max="150" value="80" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>내레이션 볼륨 (%)</span>
+            <span id="valNarrationVol" class="control-val">100%</span>
+          </div>
+          <input type="range" id="sliderNarrationVol" min="0" max="150" value="100" />
+        </div>
+      </div>
+
+      <!-- Section B: 자막 디자인 스타일 -->
+      <div class="right-block" style="border-bottom: none;">
+        <div class="section-title" style="margin-bottom: 2px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7V4h16v3M9 20h6M12 4v16" />
+          </svg>
+          <span>자막 디자인 스타일</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>자막 글자 크기</span>
+            <span id="valFontSize" class="control-val">36px</span>
+          </div>
+          <input type="range" id="sliderFontSize" min="20" max="64" value="36" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>하단 여백 위치</span>
+            <span id="valBottomMargin" class="control-val">48px</span>
+          </div>
+          <input type="range" id="sliderBottomMargin" min="16" max="220" value="48" />
+        </div>
+
+        <div class="grid-2col">
+          <label class="color-chip-label" style="background: var(--bg-input); padding: 6px 8px; border-radius: 6px; border: 1px solid #283548; justify-content: space-between;">
+            <span>자막 글자색</span>
+            <input type="color" id="pickerSubTextColor" value="#ffffff" />
+          </label>
+          <label class="color-chip-label" style="background: var(--bg-input); padding: 6px 8px; border-radius: 6px; border: 1px solid #283548; justify-content: space-between;">
+            <span>자막 배경색</span>
+            <input type="color" id="pickerSubBgColor" value="#000000" />
+          </label>
+        </div>
+
+        <label class="checkbox-row" style="margin-top: 2px;">
+          <input type="checkbox" id="chkSubBgEnabled" checked />
+          <span>반투명 자막 배경 박스 표시</span>
+        </label>
+
+        <label class="checkbox-row" style="margin-top: 2px;">
+          <input type="checkbox" id="chkTextShadowEnabled" />
+          <span>글자 그림자 효과 적용 (제목 · 자막)</span>
+        </label>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>배경 박스 불투명도</span>
+            <span id="valSubBgOpacity" class="control-val">75%</span>
+          </div>
+          <input type="range" id="sliderSubBgOpacity" min="10" max="100" value="75" />
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ========================================================================
+       3. MP4 내보내기 진행 모달
+       ======================================================================== -->
+  <div id="exportModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 16px; font-weight: 800; color: #ffffff;">MP4 동영상 내보내기</span>
+        <span id="exportPercentLabel" style="font-family: var(--font-mono); font-weight: 700; color: #818cf8;">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="exportProgressBar" class="progress-bar-fill"></div>
+      </div>
+      <div id="exportStatusDesc" style="font-size: 12.5px; color: #94a3b8;">
+        장면 프레임과 자막, 오디오 트랙을 합성하고 있습니다...
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnCancelExport" class="btn btn-secondary btn-sm">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ========================================================================
+       4. 통합 스튜디오 엔진 (JavaScript)
+       ======================================================================== -->
+  <script type="module">
+    // WebCodecs용 mp4-muxer ESM 동적 로드 (오프라인/차단 시 MediaRecorder 자동 폴백)
+    let Mp4MuxerModule = null;
+    try {
+      Mp4MuxerModule = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm');
+    } catch (e) {
+      console.warn('mp4-muxer CDN 로드 건너뜀 - 내장 MediaRecorder 폴백 사용 가능');
+    }
+
+    // ------------------------------------------------------------------------
+    // 1. 전역 상태 정의
+    // ------------------------------------------------------------------------
+    const state = {
+      isLoaded: false,
+      isPlaying: false,
+      isRendering: false,
+      cancelRenderFlag: false,
+      currentTime: 0,
+      totalDuration: 0,
+      lastTickTime: null,
+
+      width: 1280,
+      height: 720,
+
+      videoUrl: null,
+      rawVideoDuration: 0,
+
+      // 장면(클립) 배열: { id, type: 'blank'|'video', duration, startTime, endTime, title, subtitle, bgColor, textColor }
+      clips: [],
+
+      // 자막 배열: { id, start, end, text }
+      subtitles: [],
+
+      // 자막 스타일 설정
+      style: {
+        fontSize: 36,
+        bottomMargin: 48,
+        textColor: '#ffffff',
+        bgColor: '#000000',
+        bgEnabled: true,
+        bgOpacity: 0.75,
+        textShadow: false,
+      },
+
+      // 오디오 볼륨 믹서
+      mixer: {
+        videoVolume: 0.8,
+        narrationVolume: 1.0,
+      },
+
+      // 내레이션 상태
+      narration: {
+        hasAudio: false,
+        url: null,
+        blob: null,
+        audioBuffer: null,
+        duration: 0,
+        offset: 0.0,
+        name: '',
+      },
+
+      // 마이크 녹음기 상태
+      recorder: {
+        isRecording: false,
+        mediaRecorder: null,
+        stream: null,
+        audioCtx: null,
+        analyser: null,
+        chunks: [],
+        startTime: 0,
+        timerId: null,
+        meterAnimId: null,
+      },
+    };
+
+    // ------------------------------------------------------------------------
+    // 2. DOM 요소 캐싱
+    // ------------------------------------------------------------------------
+    const els = {
+      videoFileInput: document.getElementById('videoFileInput'),
+      audioFileInput: document.getElementById('audioFileInput'),
+      sourceVideo: document.getElementById('sourceVideo'),
+      narrationAudio: document.getElementById('narrationAudio'),
+
+      btnHeaderAddBlank: document.getElementById('btnHeaderAddBlank'),
+      btnHeaderSample: document.getElementById('btnHeaderSample'),
+      btnHeaderOpenVideo: document.getElementById('btnHeaderOpenVideo'),
+      btnExportMp4: document.getElementById('btnExportMp4'),
+
+      stageDropZone: document.getElementById('stageDropZone'),
+      canvasFrame: document.getElementById('canvasFrame'),
+      previewCanvas: document.getElementById('previewCanvas'),
+      emptyOverlay: document.getElementById('emptyOverlay'),
+      recIndicator: document.getElementById('recIndicator'),
+      recBadgeText: document.getElementById('recBadgeText'),
+
+      btnEmptySelectVideo: document.getElementById('btnEmptySelectVideo'),
+      btnEmptyStartBlank: document.getElementById('btnEmptyStartBlank'),
+      btnEmptyStartSample: document.getElementById('btnEmptyStartSample'),
+
+      btnPlayPause: document.getElementById('btnPlayPause'),
+      iconPlay: document.getElementById('iconPlay'),
+      iconPause: document.getElementById('iconPause'),
+      playBtnText: document.getElementById('playBtnText'),
+      btnStopReset: document.getElementById('btnStopReset'),
+      currentTimeLabel: document.getElementById('currentTimeLabel'),
+      totalTimeLabel: document.getElementById('totalTimeLabel'),
+      timelineScrubber: document.getElementById('timelineScrubber'),
+
+      trackLaneClips: document.getElementById('trackLaneClips'),
+      trackLaneSubs: document.getElementById('trackLaneSubs'),
+      trackLaneNarration: document.getElementById('trackLaneNarration'),
+      clipsTrackContent: document.getElementById('clipsTrackContent'),
+      subsTrackContent: document.getElementById('subsTrackContent'),
+      narrationTrackBlock: document.getElementById('narrationTrackBlock'),
+      timelineWaveCanvas: document.getElementById('timelineWaveCanvas'),
+      timelineResolutionTag: document.getElementById('timelineResolutionTag'),
+
+      sceneCountBadge: document.getElementById('sceneCountBadge'),
+      btnAddIntro: document.getElementById('btnAddIntro'),
+      btnAddOutro: document.getElementById('btnAddOutro'),
+      sceneListContainer: document.getElementById('sceneListContainer'),
+
+      subCountBadge: document.getElementById('subCountBadge'),
+      btnAddSubNow: document.getElementById('btnAddSubNow'),
+      subtitleListContainer: document.getElementById('subtitleListContainer'),
+
+      chkRecordFromStart: document.getElementById('chkRecordFromStart'),
+      btnStartRecord: document.getElementById('btnStartRecord'),
+      btnStopRecord: document.getElementById('btnStopRecord'),
+      recTimerLabel: document.getElementById('recTimerLabel'),
+      micLevelFill: document.getElementById('micLevelFill'),
+      btnUploadAudio: document.getElementById('btnUploadAudio'),
+
+      narrationInfoCard: document.getElementById('narrationInfoCard'),
+      narrationNameLabel: document.getElementById('narrationNameLabel'),
+      btnDeleteNarration: document.getElementById('btnDeleteNarration'),
+      inputNarrationOffset: document.getElementById('inputNarrationOffset'),
+
+      sliderVideoVol: document.getElementById('sliderVideoVol'),
+      valVideoVol: document.getElementById('valVideoVol'),
+      sliderNarrationVol: document.getElementById('sliderNarrationVol'),
+      valNarrationVol: document.getElementById('valNarrationVol'),
+
+      sliderFontSize: document.getElementById('sliderFontSize'),
+      valFontSize: document.getElementById('valFontSize'),
+      sliderBottomMargin: document.getElementById('sliderBottomMargin'),
+      valBottomMargin: document.getElementById('valBottomMargin'),
+      pickerSubTextColor: document.getElementById('pickerSubTextColor'),
+      pickerSubBgColor: document.getElementById('pickerSubBgColor'),
+      chkSubBgEnabled: document.getElementById('chkSubBgEnabled'),
+      chkTextShadowEnabled: document.getElementById('chkTextShadowEnabled'),
+      sliderSubBgOpacity: document.getElementById('sliderSubBgOpacity'),
+      valSubBgOpacity: document.getElementById('valSubBgOpacity'),
+
+      exportModal: document.getElementById('exportModal'),
+      exportPercentLabel: document.getElementById('exportPercentLabel'),
+      exportProgressBar: document.getElementById('exportProgressBar'),
+      exportStatusDesc: document.getElementById('exportStatusDesc'),
+      btnCancelExport: document.getElementById('btnCancelExport'),
+
+      toastContainer: document.getElementById('toastContainer'),
+    };
+
+    const previewCtx = els.previewCanvas.getContext('2d');
+
+    // ------------------------------------------------------------------------
+    // 3. 유틸리티 함수
+    // ------------------------------------------------------------------------
+    function formatTime(sec) {
+      if (!isFinite(sec) || sec < 0) sec = 0;
+      const mins = Math.floor(sec / 60);
+      const secs = Math.floor(sec % 60);
+      const tenths = Math.floor((sec % 1) * 10);
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`;
+    }
+
+    function formatMMSS(sec) {
+      if (!isFinite(sec) || sec < 0) sec = 0;
+      const mins = Math.floor(sec / 60);
+      const secs = Math.floor(sec % 60);
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace('#', '');
+      const num = parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function showToast(message, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast-item ${type}`;
+      el.textContent = message;
+      els.toastContainer.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 3000);
+    }
+
+    function ensureWorkspaceActive() {
+      if (!state.isLoaded) {
+        state.isLoaded = true;
+        els.previewCanvas.width = state.width;
+        els.previewCanvas.height = state.height;
+        els.emptyOverlay.classList.add('hidden');
+        els.canvasFrame.classList.remove('hidden');
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. 타임라인 & 장면(빈 장면 / 원본 영상) 관리
+    // ------------------------------------------------------------------------
+    function recalculateTimeline() {
+      let cursor = 0;
+      for (const clip of state.clips) {
+        clip.startTime = cursor;
+        cursor += clip.duration;
+        clip.endTime = cursor;
+      }
+      state.totalDuration = cursor;
+      els.timelineScrubber.max = Math.max(0.1, state.totalDuration);
+      els.totalTimeLabel.textContent = formatTime(state.totalDuration);
+
+      if (state.currentTime > state.totalDuration) {
+        state.currentTime = state.totalDuration;
+      }
+      renderSceneList();
+      renderTimelineTracks();
+    }
+
+    function getClipAtTime(t) {
+      if (state.clips.length === 0) return null;
+      for (let i = 0; i < state.clips.length; i++) {
+        const c = state.clips[i];
+        if (t >= c.startTime && (t < c.endTime || (i === state.clips.length - 1 && t <= c.endTime + 0.05))) {
+          return { clip: c, localTime: Math.max(0, t - c.startTime) };
+        }
+      }
+      const last = state.clips[state.clips.length - 1];
+      return { clip: last, localTime: last.duration };
+    }
+
+    function addBlankScene(position = 'start') {
+      ensureWorkspaceActive();
+      const duration = 3.0;
+      const newBlank = {
+        id: Date.now() + Math.random(),
+        type: 'blank',
+        duration,
+        title: position === 'end' ? '시청해 주셔서 감사합니다' : '여기에 제목을 입력하세요',
+        hasSubtitle: true,
+        subtitle: position === 'end' ? '구독과 좋아요 부탁드립니다' : '부제목을 자유롭게 편집하세요',
+        bgStyle: 'solid', // 'solid' (단색 기본) | 'gradient' (그라데이션 선택)
+        bgColor: '#1e1b4b',
+        bgColor2: '#050811',
+        textColor: '#ffffff',
+      };
+
+      if (position === 'start') {
+        state.clips.unshift(newBlank);
+        // 인트로 추가 시 기존 자막 및 내레이션 오프셋을 함께 뒤로 밀어 싱크 보존
+        state.subtitles.forEach((s) => {
+          s.start = parseFloat((s.start + duration).toFixed(1));
+          s.end = parseFloat((s.end + duration).toFixed(1));
+        });
+        if (state.narration.hasAudio) {
+          state.narration.offset = parseFloat((state.narration.offset + duration).toFixed(1));
+          els.inputNarrationOffset.value = state.narration.offset.toFixed(1);
+        }
+        state.currentTime = 0;
+      } else {
+        state.clips.push(newBlank);
+        state.currentTime = state.totalDuration;
+      }
+
+      recalculateTimeline();
+      renderSubtitleList();
+      seekTo(state.currentTime);
+      showToast(position === 'start' ? '맨 앞에 인트로 빈 장면이 추가되었습니다.' : '맨 뒤에 아웃트로 빈 장면이 추가되었습니다.', 'success');
+    }
+
+    function moveScene(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= state.clips.length) return;
+      const temp = state.clips[index];
+      state.clips[index] = state.clips[targetIndex];
+      state.clips[targetIndex] = temp;
+      recalculateTimeline();
+      renderFrame(state.currentTime);
+    }
+
+    function deleteScene(id) {
+      const target = state.clips.find((c) => c.id === id);
+      if (!target) return;
+      state.clips = state.clips.filter((c) => c.id !== id);
+
+      if (state.clips.length === 0) {
+        state.isLoaded = false;
+        state.isPlaying = false;
+        els.canvasFrame.classList.add('hidden');
+        els.emptyOverlay.classList.remove('hidden');
+      }
+      recalculateTimeline();
+      if (state.isLoaded) renderFrame(state.currentTime);
+      showToast('장면이 삭제되었습니다.', 'info');
+    }
+
+    function renderSceneList() {
+      els.sceneCountBadge.textContent = state.clips.length;
+      els.sceneListContainer.innerHTML = '';
+
+      if (state.clips.length === 0) {
+        els.sceneListContainer.innerHTML = `
+          <div style="text-align:center; padding: 18px 10px; color: #64748b; font-size: 12px; border: 1px dashed #283548; border-radius: 8px;">
+            상단의 <b>+ 인트로 추가</b> 또는 <b>동영상 열기</b>로 장면을 구성하세요.
+          </div>
+        `;
+        return;
+      }
+
+      state.clips.forEach((clip, idx) => {
+        const card = document.createElement('div');
+        if (clip.type === 'blank') {
+          if (clip.hasSubtitle === undefined) clip.hasSubtitle = Boolean(clip.subtitle && clip.subtitle.trim().length > 0);
+          if (!clip.bgStyle) clip.bgStyle = 'solid';
+          if (!clip.bgColor2) clip.bgColor2 = '#050811';
+
+          card.className = 'scene-card blank-scene';
+          card.innerHTML = `
+            <div class="scene-card-head">
+              <span class="scene-tag blank">빈 장면 #${idx + 1} (${formatTime(clip.startTime)}~${formatTime(clip.endTime)})</span>
+              <div class="icon-btn-group">
+                <button class="icon-btn" data-move="-1" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} title="위로 이동">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <button class="icon-btn" data-move="1" data-idx="${idx}" ${idx === state.clips.length - 1 ? 'disabled' : ''} title="아래로 이동">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <button class="icon-btn danger" data-del-scene="${clip.id}" title="빈 장면 삭제">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="text" class="field-input" data-scene-id="${clip.id}" data-field="title" value="${escapeHtml(clip.title)}" placeholder="메인 제목 입력..." />
+            ${
+              clip.hasSubtitle
+                ? `<div class="sub-input-row">
+                     <input type="text" class="field-input" data-scene-id="${clip.id}" data-field="subtitle" value="${escapeHtml(clip.subtitle)}" placeholder="부제목 / 설명 입력..." style="font-size: 11.5px; color: #cbd5e1;" />
+                     <button type="button" class="btn btn-secondary btn-sm" data-toggle-sub="${clip.id}" data-action="remove" title="부제목 삭제" style="color: #fda4af; border-color: rgba(244,63,94,0.35);">삭제</button>
+                   </div>`
+                : `<div style="display:flex; justify-content:flex-start;">
+                     <button type="button" class="btn btn-secondary btn-sm" data-toggle-sub="${clip.id}" data-action="add" style="font-size: 11px; color: #a5b4fc;">+ 부제목 추가</button>
+                   </div>`
+            }
+            <div class="scene-meta-row" style="flex-wrap: wrap;">
+              <label style="display:flex; align-items:center; gap:5px;">
+                <span>노출(초)</span>
+                <input type="number" step="0.5" min="0.5" max="60" class="mini-num-input" data-scene-dur="${clip.id}" value="${clip.duration.toFixed(1)}" />
+              </label>
+              <label style="display:flex; align-items:center; gap:5px;">
+                <span>배경 스타일</span>
+                <select class="mini-select" data-scene-bgstyle="${clip.id}">
+                  <option value="solid" ${clip.bgStyle === 'solid' ? 'selected' : ''}>단색</option>
+                  <option value="gradient" ${clip.bgStyle === 'gradient' ? 'selected' : ''}>그라데이션</option>
+                </select>
+              </label>
+            </div>
+            <div class="scene-meta-row">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="color-chip-label">
+                  <span>${clip.bgStyle === 'gradient' ? '시작색' : '배경색'}</span>
+                  <input type="color" data-scene-id="${clip.id}" data-field="bgColor" value="${clip.bgColor}" />
+                </label>
+                ${
+                  clip.bgStyle === 'gradient'
+                    ? `<label class="color-chip-label">
+                         <span>끝색</span>
+                         <input type="color" data-scene-id="${clip.id}" data-field="bgColor2" value="${clip.bgColor2}" />
+                       </label>`
+                    : ''
+                }
+              </div>
+              <label class="color-chip-label">
+                <span>글자색</span>
+                <input type="color" data-scene-id="${clip.id}" data-field="textColor" value="${clip.textColor}" />
+              </label>
+            </div>
+          `;
+        } else {
+          card.className = 'scene-card video-scene';
+          card.innerHTML = `
+            <div class="scene-card-head">
+              <span class="scene-tag video">원본 동영상 (${formatTime(clip.startTime)}~${formatTime(clip.endTime)})</span>
+              <div class="icon-btn-group">
+                <button class="icon-btn" data-move="-1" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''} title="위로 이동">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <button class="icon-btn" data-move="1" data-idx="${idx}" ${idx === state.clips.length - 1 ? 'disabled' : ''} title="아래로 이동">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <button class="icon-btn" data-jump="${clip.startTime}" title="이 위치로 이동">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        els.sceneListContainer.appendChild(card);
+      });
+
+      // 이벤트 바인딩
+      els.sceneListContainer.querySelectorAll('[data-scene-id]').forEach((inp) => {
+        inp.addEventListener('input', (e) => {
+          const id = Number(e.target.dataset.sceneId);
+          const field = e.target.dataset.field;
+          const target = state.clips.find((c) => c.id === id);
+          if (target) {
+            target[field] = e.target.value;
+            renderTimelineTracks();
+            renderFrame(state.currentTime);
+          }
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-scene-dur]').forEach((inp) => {
+        inp.addEventListener('change', (e) => {
+          const id = Number(e.target.dataset.sceneDur);
+          const val = Math.max(0.5, parseFloat(e.target.value) || 2.0);
+          const target = state.clips.find((c) => c.id === id);
+          if (target) {
+            target.duration = val;
+            recalculateTimeline();
+            renderFrame(state.currentTime);
+          }
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-move]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const idx = Number(e.currentTarget.dataset.idx);
+          const dir = Number(e.currentTarget.dataset.move);
+          moveScene(idx, dir);
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-del-scene]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          deleteScene(Number(e.currentTarget.dataset.delScene));
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-jump]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          seekTo(parseFloat(e.currentTarget.dataset.jump) || 0);
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-toggle-sub]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = Number(e.currentTarget.dataset.toggleSub);
+          const action = e.currentTarget.dataset.action;
+          const target = state.clips.find((c) => c.id === id);
+          if (!target) return;
+          if (action === 'remove') {
+            target.hasSubtitle = false;
+            target.subtitle = '';
+          } else {
+            target.hasSubtitle = true;
+            target.subtitle = '부제목을 입력하세요';
+          }
+          renderSceneList();
+          renderFrame(state.currentTime);
+        });
+      });
+
+      els.sceneListContainer.querySelectorAll('[data-scene-bgstyle]').forEach((sel) => {
+        sel.addEventListener('change', (e) => {
+          const id = Number(e.target.dataset.sceneBgstyle);
+          const target = state.clips.find((c) => c.id === id);
+          if (!target) return;
+          target.bgStyle = e.target.value;
+          renderSceneList();
+          renderFrame(state.currentTime);
+        });
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. 자막 대본 리스트 렌더링 & 하이라이트
+    // ------------------------------------------------------------------------
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderSubtitleList() {
+      els.subCountBadge.textContent = state.subtitles.length;
+      els.subtitleListContainer.innerHTML = '';
+
+      if (state.subtitles.length === 0) {
+        els.subtitleListContainer.innerHTML = `
+          <div style="text-align:center; padding: 20px 10px; color: #64748b; font-size: 12px; border: 1px dashed #283548; border-radius: 8px;">
+            등록된 자막이 없습니다.<br/>상단의 <b>+ 현재 위치에 자막 추가</b> 버튼을 눌러 대본을 입력하세요.
+          </div>
+        `;
+        renderTimelineTracks();
+        return;
+      }
+
+      state.subtitles.forEach((sub, idx) => {
+        const card = document.createElement('div');
+        card.className = 'sub-card';
+        card.dataset.subCardId = sub.id;
+        card.innerHTML = `
+          <div class="sub-time-row">
+            <div class="time-range-inputs">
+              <span style="font-weight: 700; color: #f59e0b;">#${idx + 1}</span>
+              <input type="number" step="0.1" min="0" class="mini-num-input" data-sub-id="${sub.id}" data-sub-field="start" value="${sub.start.toFixed(1)}" />
+              <span>~</span>
+              <input type="number" step="0.1" min="0" class="mini-num-input" data-sub-id="${sub.id}" data-sub-field="end" value="${sub.end.toFixed(1)}" />
+              <span>초</span>
+            </div>
+            <div class="icon-btn-group">
+              <button class="icon-btn" data-sub-jump="${sub.start}" title="자막 시작 위치로 이동">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <button class="icon-btn danger" data-sub-del="${sub.id}" title="자막 삭제">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <textarea class="sub-textarea" data-sub-id="${sub.id}" data-sub-field="text" placeholder="자막 내용을 입력하세요...">${escapeHtml(sub.text)}</textarea>
+        `;
+        els.subtitleListContainer.appendChild(card);
+      });
+
+      els.subtitleListContainer.querySelectorAll('input[data-sub-id]').forEach((inp) => {
+        inp.addEventListener('change', (e) => {
+          const id = Number(e.target.dataset.subId);
+          const field = e.target.dataset.subField;
+          const val = Math.max(0, parseFloat(e.target.value) || 0);
+          const target = state.subtitles.find((s) => s.id === id);
+          if (!target) return;
+          target[field] = val;
+          if (target.end <= target.start) {
+            target.end = parseFloat((target.start + 0.5).toFixed(1));
+          }
+          state.subtitles.sort((a, b) => a.start - b.start);
+          renderSubtitleList();
+          if (state.isLoaded) renderFrame(state.currentTime);
+        });
+      });
+
+      els.subtitleListContainer.querySelectorAll('textarea[data-sub-id]').forEach((ta) => {
+        ta.addEventListener('input', (e) => {
+          const id = Number(e.target.dataset.subId);
+          const target = state.subtitles.find((s) => s.id === id);
+          if (target) {
+            target.text = e.target.value;
+            renderTimelineTracks();
+            if (state.isLoaded) renderFrame(state.currentTime);
+          }
+        });
+      });
+
+      els.subtitleListContainer.querySelectorAll('[data-sub-jump]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          seekTo(parseFloat(e.currentTarget.dataset.subJump) || 0);
+        });
+      });
+
+      els.subtitleListContainer.querySelectorAll('[data-sub-del]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = Number(e.currentTarget.dataset.subDel);
+          state.subtitles = state.subtitles.filter((s) => s.id !== id);
+          renderSubtitleList();
+          if (state.isLoaded) renderFrame(state.currentTime);
+        });
+      });
+
+      renderTimelineTracks();
+      highlightActiveSubtitleCard(state.currentTime);
+    }
+
+    function highlightActiveSubtitleCard(t) {
+      els.subtitleListContainer.querySelectorAll('.sub-card').forEach((card) => {
+        const id = Number(card.dataset.subCardId);
+        const sub = state.subtitles.find((s) => s.id === id);
+        if (sub && t >= sub.start && t <= sub.end) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 6. 동영상 로드 & 샘플 프로젝트 생성
+    // ------------------------------------------------------------------------
+    function loadVideoFromUrl(url, defaultSubtitles = null) {
+      pausePlayback();
+      if (state.videoUrl && state.videoUrl.startsWith('blob:') && state.videoUrl !== url) {
+        URL.revokeObjectURL(state.videoUrl);
+      }
+      state.videoUrl = url;
+      els.sourceVideo.src = url;
+      els.sourceVideo.load();
+
+      els.sourceVideo.onloadedmetadata = () => {
+        const vw = els.sourceVideo.videoWidth || 1280;
+        const vh = els.sourceVideo.videoHeight || 720;
+        const dur = Math.max(0.5, els.sourceVideo.duration || 5);
+
+        state.width = vw;
+        state.height = vh;
+        state.rawVideoDuration = dur;
+
+        els.previewCanvas.width = vw;
+        els.previewCanvas.height = vh;
+        els.timelineResolutionTag.textContent = `${vw} × ${vh}`;
+
+        // 기존 video 클립이 있으면 교체하고, 없으면 추가
+        const existingIdx = state.clips.findIndex((c) => c.type === 'video');
+        const videoClip = {
+          id: Date.now() + Math.random(),
+          type: 'video',
+          duration: dur,
+        };
+        if (existingIdx >= 0) {
+          state.clips[existingIdx] = videoClip;
+        } else {
+          state.clips.push(videoClip);
+        }
+
+        if (Array.isArray(defaultSubtitles)) {
+          state.subtitles = defaultSubtitles;
+        }
+
+        ensureWorkspaceActive();
+        recalculateTimeline();
+        renderSubtitleList();
+        seekTo(0);
+        showToast(`동영상이 로드되었습니다 (${dur.toFixed(1)}초)`, 'success');
+      };
+
+      els.sourceVideo.onerror = () => {
+        showToast('동영상 파일을 디코딩할 수 없습니다. 다른 MP4/WebM 파일을 선택해 주세요.', 'error');
+      };
+    }
+
+    async function generateSampleProject() {
+      showToast('샘플 모션 영상과 인트로·자막을 생성하는 중입니다...', 'info');
+      const w = 1280;
+      const h = 720;
+      const fps = 30;
+      const sampleSec = 6;
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = w;
+      offCanvas.height = h;
+      const ctx = offCanvas.getContext('2d');
+
+      const stream = offCanvas.captureStream(fps);
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3_000_000 });
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.start();
+      const startTime = performance.now();
+
+      await new Promise((resolve) => {
+        const drawStep = () => {
+          const elapsed = (performance.now() - startTime) / 1000;
+          const progress = Math.min(1, elapsed / sampleSec);
+
+          const grad = ctx.createLinearGradient(0, 0, w, h);
+          grad.addColorStop(0, '#0f172a');
+          grad.addColorStop(0.5, '#1e3a8a');
+          grad.addColorStop(1, '#312e81');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
+
+          // 움직이는 원형 그래픽
+          for (let i = 0; i < 4; i++) {
+            const angle = progress * Math.PI * 2 + (i * Math.PI) / 2;
+            const cx = w / 2 + Math.cos(angle) * 240;
+            const cy = h / 2 + Math.sin(angle) * 110;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 46 + i * 10, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(99, 102, 241, ${0.22 + i * 0.08})`;
+            ctx.fill();
+          }
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '800 44px "Pretendard", "Malgun Gothic", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('SAMPLE MOTION CLIP', w / 2, h / 2 - 18);
+
+          ctx.fillStyle = '#93c5fd';
+          ctx.font = '600 22px monospace';
+          ctx.fillText(`TIMECODE ${elapsed.toFixed(2)}s / ${sampleSec}.00s`, w / 2, h / 2 + 34);
+
+          if (elapsed >= sampleSec) {
+            recorder.stop();
+            resolve();
+          } else {
+            requestAnimationFrame(drawStep);
+          }
+        };
+        requestAnimationFrame(drawStep);
+      });
+
+      await new Promise((r) => { recorder.onstop = r; });
+      const blob = new Blob(chunks, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+
+      // 인트로 빈 장면 1개 + 샘플 자막 미리 구성
+      state.clips = [
+        {
+          id: Date.now() + 1,
+          type: 'blank',
+          duration: 2.5,
+          title: '나의 첫 번째 영상 프로젝트',
+          hasSubtitle: true,
+          subtitle: '빈 장면 제목과 자막·내레이션을 자유롭게 편집해 보세요',
+          bgStyle: 'solid',
+          bgColor: '#1e1b4b',
+          bgColor2: '#050811',
+          textColor: '#ffffff',
+        },
+      ];
+
+      const sampleSubs = [
+        { id: Date.now() + 2, start: 2.6, end: 5.2, text: '안녕하세요! 자막 & 내레이션 스튜디오입니다.' },
+        { id: Date.now() + 3, start: 5.3, end: 8.2, text: '우측 패널에서 영상을 보며 바로 마이크 녹음을 해보세요.' },
+      ];
+
+      loadVideoFromUrl(url, sampleSubs);
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. 캔버스 프레임 합성 엔진 (빈 장면 제목 + 영상 + 하단 자막)
+    // ------------------------------------------------------------------------
+    function drawCompositeFrame(ctx, w, h, globalTime) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, w, h);
+
+      const slot = getClipAtTime(globalTime);
+      if (slot) {
+        const { clip } = slot;
+        if (clip.type === 'blank') {
+          // 빈 장면 배경 렌더링 (단색 기본 / 그라데이션 선택)
+          if (clip.bgStyle === 'gradient') {
+            const grad = ctx.createLinearGradient(0, 0, w, h);
+            grad.addColorStop(0, clip.bgColor || '#1e1b4b');
+            grad.addColorStop(1, clip.bgColor2 || '#050811');
+            ctx.fillStyle = grad;
+          } else {
+            ctx.fillStyle = clip.bgColor || '#1e1b4b';
+          }
+          ctx.fillRect(0, 0, w, h);
+
+          // 중앙 타이틀 & 서브타이틀 렌더링 (부제목이 삭제되거나 비어 있으면 메인 제목만 정중앙 배치)
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          const mainFontSize = Math.round(w * 0.046);
+          ctx.font = `800 ${mainFontSize}px "Pretendard", "Malgun Gothic", sans-serif`;
+          ctx.fillStyle = clip.textColor || '#ffffff';
+          if (state.style.textShadow) {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 3;
+          } else {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+          }
+
+          const hasSub = clip.hasSubtitle !== false && clip.subtitle && clip.subtitle.trim().length > 0;
+          const mainY = hasSub ? h * 0.44 : h * 0.5;
+          ctx.fillText(clip.title || '', w / 2, mainY, w - 120);
+
+          if (hasSub) {
+            const subFontSize = Math.round(w * 0.022);
+            ctx.font = `500 ${subFontSize}px "Pretendard", "Malgun Gothic", sans-serif`;
+            ctx.fillStyle = hexToRgba(clip.textColor || '#ffffff', 0.82);
+            ctx.fillText(clip.subtitle, w / 2, h * 0.55, w - 140);
+          }
+          ctx.restore();
+        } else if (els.sourceVideo.readyState >= 2) {
+          ctx.drawImage(els.sourceVideo, 0, 0, w, h);
+        }
+      }
+
+      // 활성 자막 오버레이 그리기
+      const activeSub = state.subtitles.find(
+        (s) => globalTime >= s.start && globalTime <= s.end && s.text.trim().length > 0
+      );
+
+      if (activeSub) {
+        ctx.save();
+        const scale = w / 1280;
+        const fontSize = Math.round(state.style.fontSize * scale);
+        const bottomMargin = Math.round(state.style.bottomMargin * scale);
+        const lineHeight = Math.round(fontSize * 1.35);
+
+        ctx.font = `700 ${fontSize}px "Pretendard", "Malgun Gothic", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const lines = activeSub.text.split('\n');
+        let maxLineW = 0;
+        for (const line of lines) {
+          const m = ctx.measureText(line).width;
+          if (m > maxLineW) maxLineW = m;
+        }
+
+        const padX = Math.round(24 * scale);
+        const padY = Math.round(12 * scale);
+        const boxW = Math.min(w - 40, maxLineW + padX * 2);
+        const boxH = lines.length * lineHeight + padY * 2;
+        const boxX = (w - boxW) / 2;
+        const boxY = h - bottomMargin - boxH;
+
+        if (state.style.bgEnabled) {
+          ctx.fillStyle = hexToRgba(state.style.bgColor, state.style.bgOpacity);
+          const r = Math.round(10 * scale);
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxW, boxH, r);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = state.style.textColor;
+        if (state.style.textShadow) {
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetY = 2;
+        } else {
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+        }
+
+        lines.forEach((line, idx) => {
+          const y = boxY + padY + lineHeight * (idx + 0.5);
+          ctx.fillText(line, w / 2, y, w - 60);
+        });
+        ctx.restore();
+      }
+    }
+
+    function renderFrame(t) {
+      if (!state.isLoaded) return;
+      drawCompositeFrame(previewCtx, state.width, state.height, t);
+    }
+
+    // ------------------------------------------------------------------------
+    // 8. 멀티 트랙 타임라인 시각화
+    // ------------------------------------------------------------------------
+    function renderTimelineTracks() {
+      els.clipsTrackContent.innerHTML = '';
+      els.subsTrackContent.innerHTML = '';
+
+      const dur = state.totalDuration;
+      if (dur <= 0) {
+        els.narrationTrackBlock.classList.add('hidden');
+        return;
+      }
+
+      // Track 1: 장면/클립
+      state.clips.forEach((clip, i) => {
+        const leftPct = (clip.startTime / dur) * 100;
+        const widthPct = Math.max(1.2, (clip.duration / dur) * 100);
+        const div = document.createElement('div');
+        div.className = `clip-block ${clip.type}`;
+        div.style.left = `${leftPct}%`;
+        div.style.width = `${widthPct}%`;
+        div.textContent = clip.type === 'blank' ? (clip.title || `빈 장면 #${i + 1}`) : '원본 동영상';
+        els.clipsTrackContent.appendChild(div);
+      });
+
+      // Track 2: 자막 구간
+      state.subtitles.forEach((sub) => {
+        const leftPct = Math.min(100, (sub.start / dur) * 100);
+        const widthPct = Math.max(1.0, Math.min(100 - leftPct, ((sub.end - sub.start) / dur) * 100));
+        const div = document.createElement('div');
+        div.className = 'sub-block';
+        div.style.left = `${leftPct}%`;
+        div.style.width = `${widthPct}%`;
+        div.textContent = sub.text;
+        els.subsTrackContent.appendChild(div);
+      });
+
+      // Track 3: 내레이션 파형 블록
+      if (state.narration.hasAudio) {
+        const leftPct = Math.min(100, (state.narration.offset / dur) * 100);
+        const widthPct = Math.max(2, Math.min(100 - leftPct, (state.narration.duration / dur) * 100));
+        els.narrationTrackBlock.classList.remove('hidden');
+        els.narrationTrackBlock.style.left = `${leftPct}%`;
+        els.narrationTrackBlock.style.width = `${widthPct}%`;
+        drawNarrationWaveform();
+      } else {
+        els.narrationTrackBlock.classList.add('hidden');
+      }
+
+      updatePlayheadPosition();
+    }
+
+    function updatePlayheadPosition() {
+      const pct = state.totalDuration > 0 ? Math.min(100, (state.currentTime / state.totalDuration) * 100) : 0;
+      document.querySelectorAll('[data-playhead]').forEach((el) => {
+        el.style.left = `${pct}%`;
+      });
+    }
+
+    function drawNarrationWaveform() {
+      const buf = state.narration.audioBuffer;
+      const canvas = els.timelineWaveCanvas;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(120, Math.floor(rect.width));
+      canvas.height = 26;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!buf) return;
+      const data = buf.getChannelData(0);
+      const step = Math.ceil(data.length / canvas.width);
+      const mid = canvas.height / 2;
+
+      ctx.fillStyle = '#34d399';
+      for (let x = 0; x < canvas.width; x++) {
+        let max = 0;
+        for (let j = 0; j < step; j++) {
+          const v = Math.abs(data[x * step + j] || 0);
+          if (v > max) max = v;
+        }
+        const barH = Math.max(2, max * canvas.height * 0.9);
+        ctx.fillRect(x, mid - barH / 2, 1.5, barH);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 9. 실시간 재생 & 오디오 동기화 루프
+    // ------------------------------------------------------------------------
+    function seekTo(t) {
+      if (!state.isLoaded) return;
+      state.currentTime = Math.max(0, Math.min(state.totalDuration, t));
+      els.timelineScrubber.value = state.currentTime;
+      els.currentTimeLabel.textContent = formatTime(state.currentTime);
+      updatePlayheadPosition();
+      highlightActiveSubtitleCard(state.currentTime);
+
+      const slot = getClipAtTime(state.currentTime);
+      if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
+        els.sourceVideo.currentTime = Math.min(state.rawVideoDuration - 0.01, slot.localTime);
+      }
+      syncNarrationAudio(state.currentTime);
+      renderFrame(state.currentTime);
+    }
+
+    function syncNarrationAudio(t) {
+      if (!state.narration.hasAudio || !els.narrationAudio.src) return;
+      els.narrationAudio.volume = Math.min(1, state.mixer.narrationVolume);
+
+      const narLocal = t - state.narration.offset;
+      const inRange = narLocal >= 0 && narLocal < state.narration.duration;
+
+      if (state.isPlaying && inRange) {
+        if (els.narrationAudio.paused) {
+          els.narrationAudio.currentTime = narLocal;
+          els.narrationAudio.play().catch(() => {});
+        } else if (Math.abs(els.narrationAudio.currentTime - narLocal) > 0.25) {
+          els.narrationAudio.currentTime = narLocal;
+        }
+      } else {
+        if (!els.narrationAudio.paused) {
+          els.narrationAudio.pause();
+        }
+        if (inRange) {
+          els.narrationAudio.currentTime = narLocal;
+        }
+      }
+    }
+
+    function togglePlay() {
+      if (!state.isLoaded) {
+        showToast('먼저 동영상이나 빈 장면을 추가해 주세요.', 'info');
+        return;
+      }
+      if (!state.isPlaying) {
+        if (state.currentTime >= state.totalDuration - 0.05) {
+          state.currentTime = 0;
+        }
+        state.isPlaying = true;
+        state.lastTickTime = performance.now();
+        els.iconPlay.classList.add('hidden');
+        els.iconPause.classList.remove('hidden');
+        els.playBtnText.textContent = '일시정지';
+      } else {
+        pausePlayback();
+      }
+    }
+
+    function pausePlayback() {
+      state.isPlaying = false;
+      state.lastTickTime = null;
+      els.sourceVideo.pause();
+      els.narrationAudio.pause();
+      els.iconPlay.classList.remove('hidden');
+      els.iconPause.classList.add('hidden');
+      els.playBtnText.textContent = '재생';
+    }
+
+    function animationLoop(now) {
+      if (state.isLoaded && !state.isRendering) {
+        els.sourceVideo.volume = Math.min(1, state.mixer.videoVolume);
+
+        if (state.isPlaying) {
+          const dt = state.lastTickTime ? (now - state.lastTickTime) / 1000 : 0;
+          state.lastTickTime = now;
+          state.currentTime += dt;
+
+          if (state.currentTime >= state.totalDuration) {
+            state.currentTime = state.totalDuration;
+            pausePlayback();
+          } else {
+            const slot = getClipAtTime(state.currentTime);
+            if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
+              if (els.sourceVideo.paused) {
+                els.sourceVideo.currentTime = slot.localTime;
+                els.sourceVideo.play().catch(() => {});
+              } else if (Math.abs(els.sourceVideo.currentTime - slot.localTime) > 0.28) {
+                els.sourceVideo.currentTime = slot.localTime;
+              }
+            } else if (!els.sourceVideo.paused) {
+              els.sourceVideo.pause();
+            }
+          }
+
+          els.timelineScrubber.value = state.currentTime;
+          els.currentTimeLabel.textContent = formatTime(state.currentTime);
+          updatePlayheadPosition();
+          highlightActiveSubtitleCard(state.currentTime);
+          syncNarrationAudio(state.currentTime);
+        }
+
+        renderFrame(state.currentTime);
+      }
+      requestAnimationFrame(animationLoop);
+    }
+    requestAnimationFrame(animationLoop);
+
+    // ------------------------------------------------------------------------
+    // 10. 내레이션 녹음 (MediaRecorder) & 오디오 파일 디코딩
+    // ------------------------------------------------------------------------
+    async function setNarrationAudioBlob(blob, name, offsetSec = 0) {
+      if (state.narration.url && state.narration.url.startsWith('blob:')) {
+        URL.revokeObjectURL(state.narration.url);
+      }
+      const url = URL.createObjectURL(blob);
+      const arrayBuf = await blob.arrayBuffer();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const tempCtx = new AudioCtx();
+      const decoded = await tempCtx.decodeAudioData(arrayBuf);
+      await tempCtx.close();
+
+      state.narration.hasAudio = true;
+      state.narration.url = url;
+      state.narration.blob = blob;
+      state.narration.audioBuffer = decoded;
+      state.narration.duration = decoded.duration;
+      state.narration.offset = Math.max(0, parseFloat(offsetSec.toFixed(1)));
+      state.narration.name = name;
+
+      els.narrationAudio.src = url;
+      els.narrationInfoCard.classList.remove('hidden');
+      els.narrationNameLabel.textContent = `${name} (${decoded.duration.toFixed(1)}초)`;
+      els.inputNarrationOffset.value = state.narration.offset.toFixed(1);
+
+      renderTimelineTracks();
+      showToast('내레이션 오디오가 트랙에 반영되었습니다.', 'success');
+    }
+
+    async function startNarrationRecording() {
+      if (state.recorder.isRecording) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        state.recorder.stream = stream;
+        state.recorder.chunks = [];
+        state.recorder.isRecording = true;
+
+        // '0초부터 재생' 체크 시 타임라인 처음으로 이동 (영상 및 빈 장면 절대 유지)
+        if (state.isLoaded && els.chkRecordFromStart.checked) {
+          seekTo(0);
+        }
+        const recordStartOffset = state.isLoaded ? state.currentTime : 0;
+
+        // 실시간 마이크 입력 레벨 분석기
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        const src = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        src.connect(analyser);
+        state.recorder.audioCtx = audioCtx;
+        state.recorder.analyser = analyser;
+
+        const dataArr = new Uint8Array(analyser.frequencyBinCount);
+        const updateMeter = () => {
+          if (!state.recorder.isRecording) return;
+          analyser.getByteFrequencyData(dataArr);
+          let sum = 0;
+          for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
+          const avg = sum / dataArr.length;
+          const pct = Math.min(100, Math.round((avg / 128) * 100));
+          els.micLevelFill.style.width = `${pct}%`;
+          state.recorder.meterAnimId = requestAnimationFrame(updateMeter);
+        };
+        updateMeter();
+
+        const mediaRecorder = new MediaRecorder(stream);
+        state.recorder.mediaRecorder = mediaRecorder;
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) state.recorder.chunks.push(e.data);
+        };
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(state.recorder.chunks, { type: 'audio/webm' });
+          await setNarrationAudioBlob(blob, '마이크 녹음 내레이션', recordStartOffset);
+          if (state.isLoaded) renderFrame(state.currentTime);
+        };
+
+        mediaRecorder.start();
+        state.recorder.startTime = performance.now();
+
+        // UI 전환
+        els.btnStartRecord.classList.add('hidden');
+        els.btnStopRecord.classList.remove('hidden');
+        els.recIndicator.classList.remove('hidden');
+
+        state.recorder.timerId = setInterval(() => {
+          const sec = (performance.now() - state.recorder.startTime) / 1000;
+          const formatted = formatMMSS(sec);
+          els.recTimerLabel.textContent = `녹음 중 ${formatted}`;
+          els.recBadgeText.textContent = `REC 녹음 중 ${formatted}`;
+        }, 200);
+
+        // 영상이 로드되어 있으면 재생 시작하여 자막을 보면서 녹음하도록 지원
+        if (state.isLoaded && !state.isPlaying) {
+          togglePlay();
+        }
+        showToast('영상을 재생하며 내레이션 녹음을 시작합니다.', 'info');
+      } catch (err) {
+        showToast('마이크 접근 권한이 필요하거나 장치를 찾을 수 없습니다.', 'error');
+      }
+    }
+
+    function stopNarrationRecording() {
+      if (!state.recorder.isRecording) return;
+      state.recorder.isRecording = false;
+
+      clearInterval(state.recorder.timerId);
+      cancelAnimationFrame(state.recorder.meterAnimId);
+
+      if (state.recorder.mediaRecorder && state.recorder.mediaRecorder.state !== 'inactive') {
+        state.recorder.mediaRecorder.stop();
+      }
+      if (state.recorder.stream) {
+        state.recorder.stream.getTracks().forEach((t) => t.stop());
+      }
+      if (state.recorder.audioCtx) {
+        state.recorder.audioCtx.close();
+      }
+
+      if (state.isPlaying) {
+        pausePlayback();
+      }
+
+      els.btnStopRecord.classList.add('hidden');
+      els.btnStartRecord.classList.remove('hidden');
+      els.recIndicator.classList.add('hidden');
+      els.recTimerLabel.textContent = '녹음 완료';
+      els.micLevelFill.style.width = '0%';
+    }
+
+    // ------------------------------------------------------------------------
+    // 11. 오프라인 오디오 믹싱 & MP4 인코딩 내보내기 엔진
+    // ------------------------------------------------------------------------
+    async function renderMixedAudioBuffer(durationSec, sampleRate = 48000) {
+      const totalSamples = Math.max(1, Math.ceil(durationSec * sampleRate));
+      const offlineCtx = new OfflineAudioContext(2, totalSamples, sampleRate);
+
+      // 1. 원본 동영상 오디오 추출 및 클립 시작 오프셋 위치에 배치
+      const videoClip = state.clips.find((c) => c.type === 'video');
+      if (videoClip && els.sourceVideo.src) {
+        try {
+          const resp = await fetch(els.sourceVideo.src);
+          const arrBuf = await resp.arrayBuffer();
+          const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const decodedVid = await tempCtx.decodeAudioData(arrBuf);
+          await tempCtx.close();
+
+          const vidSource = offlineCtx.createBufferSource();
+          vidSource.buffer = decodedVid;
+          const vidGain = offlineCtx.createGain();
+          vidGain.gain.value = state.mixer.videoVolume;
+          vidSource.connect(vidGain).connect(offlineCtx.destination);
+          vidSource.start(videoClip.startTime || 0);
+        } catch (e) {
+          // 오디오 트랙이 없는 무음 영상인 경우 정상 스킵
+        }
+      }
+
+      // 2. 내레이션 오디오 트랙 배치
+      if (state.narration.hasAudio && state.narration.audioBuffer) {
+        const narSource = offlineCtx.createBufferSource();
+        narSource.buffer = state.narration.audioBuffer;
+        const narGain = offlineCtx.createGain();
+        narGain.gain.value = state.mixer.narrationVolume;
+        narSource.connect(narGain).connect(offlineCtx.destination);
+        narSource.start(state.narration.offset || 0);
+      }
+
+      return await offlineCtx.startRendering();
+    }
+
+    function seekVideoElement(timeSec) {
+      return new Promise((resolve) => {
+        if (!els.sourceVideo.src || els.sourceVideo.readyState < 1) {
+          resolve();
+          return;
+        }
+        const clamped = Math.max(0, Math.min(state.rawVideoDuration - 0.01, timeSec));
+        if (Math.abs(els.sourceVideo.currentTime - clamped) < 0.005) {
+          resolve();
+          return;
+        }
+        const onSeeked = () => {
+          els.sourceVideo.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        els.sourceVideo.addEventListener('seeked', onSeeked);
+        els.sourceVideo.currentTime = clamped;
+      });
+    }
+
+    async function exportToMp4() {
+      if (!state.isLoaded || state.totalDuration <= 0) {
+        showToast('내보낼 장면이나 동영상이 없습니다.', 'error');
+        return;
+      }
+      if (state.isPlaying) pausePlayback();
+
+      state.isRendering = true;
+      state.cancelRenderFlag = false;
+      els.exportModal.classList.remove('hidden');
+      els.exportProgressBar.style.width = '0%';
+      els.exportPercentLabel.textContent = '0%';
+
+      try {
+        const canUseWebCodecs =
+          typeof VideoEncoder !== 'undefined' &&
+          typeof AudioEncoder !== 'undefined' &&
+          Mp4MuxerModule &&
+          Mp4MuxerModule.Muxer;
+
+        if (canUseWebCodecs) {
+          await encodeWithWebCodecsMp4();
+        } else {
+          await encodeWithMediaRecorderFallback();
+        }
+      } catch (err) {
+        if (!state.cancelRenderFlag) {
+          console.error(err);
+          showToast('MP4 인코딩 중 오류가 발생했습니다. 폴백 방식으로 다시 시도해 주세요.', 'error');
+        }
+      } finally {
+        state.isRendering = false;
+        els.exportModal.classList.add('hidden');
+        seekTo(state.currentTime);
+      }
+    }
+
+    async function encodeWithWebCodecsMp4() {
+      const { Muxer, ArrayBufferTarget } = Mp4MuxerModule;
+      const width = state.width;
+      const height = state.height;
+      const fps = 30;
+      const totalFrames = Math.ceil(state.totalDuration * fps);
+      const sampleRate = 48000;
+
+      els.exportStatusDesc.textContent = '오디오 트랙(원본 + 내레이션) 믹싱 중...';
+      const mixedAudio = await renderMixedAudioBuffer(state.totalDuration, sampleRate);
+
+      const target = new ArrayBufferTarget();
+      const muxer = new Muxer({
+        target,
+        video: { codec: 'avc', width, height },
+        audio: { codec: 'aac', numberOfChannels: 2, sampleRate },
+        fastStart: 'in-memory',
+      });
+
+      const videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => console.error('VideoEncoder error:', e),
+      });
+
+      videoEncoder.configure({
+        codec: 'avc1.42001f',
+        width,
+        height,
+        bitrate: 4_500_000,
+        framerate: fps,
+      });
+
+      const audioEncoder = new AudioEncoder({
+        output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+        error: (e) => console.error('AudioEncoder error:', e),
+      });
+
+      audioEncoder.configure({
+        codec: 'mp4a.40.2',
+        numberOfChannels: 2,
+        sampleRate,
+        bitrate: 128_000,
+      });
+
+      // 오디오 인코딩
+      const chunkFrames = 1024;
+      const totalAudioSamples = mixedAudio.length;
+      const leftCh = mixedAudio.getChannelData(0);
+      const rightCh = mixedAudio.numberOfChannels > 1 ? mixedAudio.getChannelData(1) : leftCh;
+
+      for (let offset = 0; offset < totalAudioSamples; offset += chunkFrames) {
+        const count = Math.min(chunkFrames, totalAudioSamples - offset);
+        const planar = new Float32Array(count * 2);
+        planar.set(leftCh.subarray(offset, offset + count), 0);
+        planar.set(rightCh.subarray(offset, offset + count), count);
+
+        const audioData = new AudioData({
+          format: 'f32-planar',
+          sampleRate,
+          numberOfFrames: count,
+          numberOfChannels: 2,
+          timestamp: Math.round((offset / sampleRate) * 1_000_000),
+          data: planar,
+        });
+        audioEncoder.encode(audioData);
+        audioData.close();
+      }
+
+      // 비디오 프레임 인코딩
+      const renderCanvas = document.createElement('canvas');
+      renderCanvas.width = width;
+      renderCanvas.height = height;
+      const renderCtx = renderCanvas.getContext('2d');
+
+      els.exportStatusDesc.textContent = '장면 및 자막 프레임 H.264 인코딩 중...';
+
+      for (let f = 0; f < totalFrames; f++) {
+        if (state.cancelRenderFlag) {
+          videoEncoder.close();
+          audioEncoder.close();
+          return;
+        }
+
+        const timeSec = f / fps;
+        const slot = getClipAtTime(timeSec);
+        if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
+          await seekVideoElement(slot.localTime);
+        }
+
+        drawCompositeFrame(renderCtx, width, height, timeSec);
+        drawCompositeFrame(previewCtx, width, height, timeSec);
+
+        const timestampUs = Math.round(timeSec * 1_000_000);
+        const frame = new VideoFrame(renderCanvas, {
+          timestamp: timestampUs,
+          duration: Math.round(1_000_000 / fps),
+        });
+        videoEncoder.encode(frame, { keyFrame: f % 30 === 0 });
+        frame.close();
+
+        const pct = Math.min(99, Math.round(((f + 1) / totalFrames) * 100));
+        els.exportProgressBar.style.width = `${pct}%`;
+        els.exportPercentLabel.textContent = `${pct}%`;
+
+        if (f % 5 === 0) {
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      }
+
+      els.exportStatusDesc.textContent = 'MP4 컨테이너 마무리 중...';
+      await videoEncoder.flush();
+      await audioEncoder.flush();
+      muxer.finalize();
+
+      const mp4Blob = new Blob([target.buffer], { type: 'video/mp4' });
+      triggerFileDownload(mp4Blob, `studio-export-${Date.now()}.mp4`);
+      els.exportProgressBar.style.width = '100%';
+      els.exportPercentLabel.textContent = '100%';
+      showToast('MP4 파일 저장이 완료되었습니다!', 'success');
+    }
+
+    async function encodeWithMediaRecorderFallback() {
+      els.exportStatusDesc.textContent = '실시간 스트림 합성 모드로 인코딩 중...';
+      const fps = 30;
+      const stream = els.previewCanvas.captureStream(fps);
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      try {
+        const mixedBuf = await renderMixedAudioBuffer(state.totalDuration, audioCtx.sampleRate);
+        const src = audioCtx.createBufferSource();
+        src.buffer = mixedBuf;
+        src.connect(dest);
+        src.start(0);
+        dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      } catch (e) {
+        // 오디오 트랙 없이 진행
+      }
+
+      const isNativeMp4 = MediaRecorder.isTypeSupported('video/mp4');
+      const mimeType = isNativeMp4 ? 'video/mp4' : 'video/webm';
+      const ext = isNativeMp4 ? 'mp4' : 'webm';
+
+      const chunks = [];
+      const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      rec.start();
+      const startTs = performance.now();
+
+      await new Promise((resolve) => {
+        const step = () => {
+          if (state.cancelRenderFlag) {
+            rec.stop();
+            resolve();
+            return;
+          }
+          const t = (performance.now() - startTs) / 1000;
+          const slot = getClipAtTime(t);
+          if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
+            if (els.sourceVideo.paused) {
+              els.sourceVideo.currentTime = slot.localTime;
+              els.sourceVideo.play().catch(() => {});
+            }
+          } else if (!els.sourceVideo.paused) {
+            els.sourceVideo.pause();
+          }
+
+          drawCompositeFrame(previewCtx, state.width, state.height, Math.min(t, state.totalDuration));
+          const pct = Math.min(99, Math.round((t / state.totalDuration) * 100));
+          els.exportProgressBar.style.width = `${pct}%`;
+          els.exportPercentLabel.textContent = `${pct}%`;
+
+          if (t >= state.totalDuration) {
+            els.sourceVideo.pause();
+            rec.stop();
+            resolve();
+          } else {
+            requestAnimationFrame(step);
+          }
+        };
+        requestAnimationFrame(step);
+      });
+
+      await new Promise((r) => { rec.onstop = r; });
+      await audioCtx.close();
+
+      if (!state.cancelRenderFlag) {
+        const outBlob = new Blob(chunks, { type: mimeType });
+        triggerFileDownload(outBlob, `studio-export-${Date.now()}.${ext}`);
+        showToast(`영상 내보내기(${ext.toUpperCase()})가 완료되었습니다!`, 'success');
+      }
+    }
+
+    function triggerFileDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    // ------------------------------------------------------------------------
+    // 12. UI 이벤트 리스너 바인딩
+    // ------------------------------------------------------------------------
+    // 상단 헤더 & 빈 화면 버튼
+    els.btnHeaderAddBlank.addEventListener('click', () => addBlankScene('start'));
+    els.btnAddIntro.addEventListener('click', () => addBlankScene('start'));
+    els.btnAddOutro.addEventListener('click', () => addBlankScene('end'));
+    els.btnEmptyStartBlank.addEventListener('click', () => addBlankScene('start'));
+
+    els.btnHeaderSample.addEventListener('click', generateSampleProject);
+    els.btnEmptyStartSample.addEventListener('click', generateSampleProject);
+
+    els.btnHeaderOpenVideo.addEventListener('click', () => els.videoFileInput.click());
+    els.btnEmptySelectVideo.addEventListener('click', () => els.videoFileInput.click());
+
+    els.videoFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      loadVideoFromUrl(url);
+      e.target.value = '';
+    });
+
+    // 드래그 앤 드롭 비디오 로드
+    els.stageDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      els.stageDropZone.classList.add('drag-over');
+    });
+    els.stageDropZone.addEventListener('dragleave', () => {
+      els.stageDropZone.classList.remove('drag-over');
+    });
+    els.stageDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      els.stageDropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('video/')) {
+        loadVideoFromUrl(URL.createObjectURL(file));
+      } else {
+        showToast('동영상 파일(MP4, WebM, MOV 등)만 드롭할 수 있습니다.', 'error');
+      }
+    });
+
+    // 재생 컨트롤
+    els.btnPlayPause.addEventListener('click', togglePlay);
+    els.btnStopReset.addEventListener('click', () => {
+      pausePlayback();
+      seekTo(0);
+    });
+    els.timelineScrubber.addEventListener('input', (e) => {
+      seekTo(parseFloat(e.target.value));
+    });
+
+    // 타임라인 트랙 클릭 이동
+    [els.trackLaneClips, els.trackLaneSubs, els.trackLaneNarration].forEach((lane) => {
+      lane.addEventListener('click', (e) => {
+        if (!state.isLoaded || state.totalDuration <= 0) return;
+        const rect = lane.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        seekTo(ratio * state.totalDuration);
+      });
+    });
+
+    // 자막 추가
+    els.btnAddSubNow.addEventListener('click', () => {
+      const start = parseFloat((state.isLoaded ? state.currentTime : 0).toFixed(1));
+      const maxDur = state.isLoaded && state.totalDuration > 0 ? state.totalDuration : 60;
+      const end = parseFloat(Math.min(maxDur, start + 2.5).toFixed(1));
+
+      state.subtitles.push({
+        id: Date.now() + Math.random(),
+        start,
+        end: end > start ? end : parseFloat((start + 1.0).toFixed(1)),
+        text: '새 자막 내용을 입력하세요',
+      });
+      state.subtitles.sort((a, b) => a.start - b.start);
+      renderSubtitleList();
+      if (state.isLoaded) renderFrame(state.currentTime);
+    });
+
+    // 내레이션 녹음 & 오디오 파일
+    els.btnStartRecord.addEventListener('click', startNarrationRecording);
+    els.btnStopRecord.addEventListener('click', stopNarrationRecording);
+    els.btnUploadAudio.addEventListener('click', () => els.audioFileInput.click());
+
+    els.audioFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const offset = state.isLoaded ? state.currentTime : 0;
+      await setNarrationAudioBlob(file, file.name, offset);
+      e.target.value = '';
+    });
+
+    els.inputNarrationOffset.addEventListener('change', (e) => {
+      state.narration.offset = Math.max(0, parseFloat(e.target.value) || 0);
+      e.target.value = state.narration.offset.toFixed(1);
+      renderTimelineTracks();
+    });
+
+    els.btnDeleteNarration.addEventListener('click', () => {
+      els.narrationAudio.pause();
+      els.narrationAudio.src = '';
+      state.narration.hasAudio = false;
+      state.narration.audioBuffer = null;
+      state.narration.blob = null;
+      els.narrationInfoCard.classList.add('hidden');
+      renderTimelineTracks();
+      showToast('내레이션 트랙이 삭제되었습니다.', 'info');
+    });
+
+    // 볼륨 & 스타일 슬라이더
+    els.sliderVideoVol.addEventListener('input', (e) => {
+      const pct = Number(e.target.value);
+      state.mixer.videoVolume = pct / 100;
+      els.valVideoVol.textContent = `${pct}%`;
+    });
+
+    els.sliderNarrationVol.addEventListener('input', (e) => {
+      const pct = Number(e.target.value);
+      state.mixer.narrationVolume = pct / 100;
+      els.valNarrationVol.textContent = `${pct}%`;
+    });
+
+    els.sliderFontSize.addEventListener('input', (e) => {
+      state.style.fontSize = Number(e.target.value);
+      els.valFontSize.textContent = `${state.style.fontSize}px`;
+      renderFrame(state.currentTime);
+    });
+
+    els.sliderBottomMargin.addEventListener('input', (e) => {
+      state.style.bottomMargin = Number(e.target.value);
+      els.valBottomMargin.textContent = `${state.style.bottomMargin}px`;
+      renderFrame(state.currentTime);
+    });
+
+    els.pickerSubTextColor.addEventListener('input', (e) => {
+      state.style.textColor = e.target.value;
+      renderFrame(state.currentTime);
+    });
+
+    els.pickerSubBgColor.addEventListener('input', (e) => {
+      state.style.bgColor = e.target.value;
+      renderFrame(state.currentTime);
+    });
+
+    els.chkSubBgEnabled.addEventListener('change', (e) => {
+      state.style.bgEnabled = e.target.checked;
+      renderFrame(state.currentTime);
+    });
+
+    els.chkTextShadowEnabled.addEventListener('change', (e) => {
+      state.style.textShadow = e.target.checked;
+      renderFrame(state.currentTime);
+    });
+
+    els.sliderSubBgOpacity.addEventListener('input', (e) => {
+      const pct = Number(e.target.value);
+      state.style.bgOpacity = pct / 100;
+      els.valSubBgOpacity.textContent = `${pct}%`;
+      renderFrame(state.currentTime);
+    });
+
+    // MP4 내보내기 & 취소
+    els.btnExportMp4.addEventListener('click', exportToMp4);
+    els.btnCancelExport.addEventListener('click', () => {
+      state.cancelRenderFlag = true;
+    });
+
+    // 스페이스바 재생/일시정지 단축키
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    // 초기 리스트 렌더링
+    renderSceneList();
+    renderSubtitleList();
+  </script>
+</body>
+</html>
