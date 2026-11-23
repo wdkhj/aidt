@@ -1006,13 +1006,25 @@
     .hidden {
       display: none !important;
     }
+
+    /* 브라우저가 비디오 프레임 디코딩을 절약/중단하지 않도록 화면 뒤쪽에 활성 상태로 유지 */
+    .active-video-decoder {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 2px;
+      opacity: 0.001;
+      pointer-events: none;
+      z-index: -1;
+    }
   </style>
 </head>
 <body>
   <!-- 숨겨진 미디어/파일 입력 요소 -->
   <input type="file" id="videoFileInput" accept="video/*" class="hidden" />
   <input type="file" id="audioFileInput" accept="audio/*" class="hidden" />
-  <video id="sourceVideo" playsinline crossorigin="anonymous" class="hidden"></video>
+  <video id="sourceVideo" playsinline muted crossorigin="anonymous" class="active-video-decoder"></video>
   <audio id="narrationAudio" crossorigin="anonymous" class="hidden"></audio>
 
   <!-- ========================================================================
@@ -1992,17 +2004,24 @@
       els.sourceVideo.load();
 
       els.sourceVideo.onloadedmetadata = () => {
-        const vw = els.sourceVideo.videoWidth || 1280;
-        const vh = els.sourceVideo.videoHeight || 720;
+        const vw = els.sourceVideo.videoWidth;
+        const vh = els.sourceVideo.videoHeight;
         const dur = Math.max(0.5, els.sourceVideo.duration || 5);
 
-        state.width = vw;
-        state.height = vh;
+        if (!vw || !vh) {
+          showToast('경고: 이 영상의 비디오 코덱(HEVC/H.265 등)을 브라우저가 지원하지 않아 소리만 재생될 수 있습니다. H.264(MP4)로 변환 후 불러와 주세요.', 'error');
+        }
+
+        const safeW = vw || 1280;
+        const safeH = vh || 720;
+
+        state.width = safeW;
+        state.height = safeH;
         state.rawVideoDuration = dur;
 
-        els.previewCanvas.width = vw;
-        els.previewCanvas.height = vh;
-        els.timelineResolutionTag.textContent = `${vw} × ${vh}`;
+        els.previewCanvas.width = safeW;
+        els.previewCanvas.height = safeH;
+        els.timelineResolutionTag.textContent = `${safeW} × ${safeH}`;
 
         // 기존 video 클립이 있으면 교체하고, 없으면 추가
         const existingIdx = state.clips.findIndex((c) => c.type === 'video');
@@ -2025,7 +2044,23 @@
         recalculateTimeline();
         renderSubtitleList();
         seekTo(0);
-        showToast(`동영상이 로드되었습니다 (${dur.toFixed(1)}초)`, 'success');
+
+        if (vw && vh) {
+          showToast(`동영상이 로드되었습니다 (${dur.toFixed(1)}초)`, 'success');
+        }
+      };
+
+      // 실제 첫 프레임 픽셀이 GPU 메모리에 올라온 즉시 캔버스 다시 그리기
+      els.sourceVideo.onloadeddata = () => {
+        if (state.isLoaded) {
+          renderFrame(state.currentTime);
+        }
+      };
+
+      els.sourceVideo.onseeked = () => {
+        if (state.isLoaded) {
+          renderFrame(state.currentTime);
+        }
       };
 
       els.sourceVideo.onerror = () => {
@@ -2407,7 +2442,9 @@
 
     function animationLoop(now) {
       if (state.isLoaded && !state.isRendering) {
-        els.sourceVideo.volume = Math.min(1, state.mixer.videoVolume);
+        const targetVol = Math.min(1, state.mixer.videoVolume);
+        els.sourceVideo.muted = targetVol <= 0.001;
+        els.sourceVideo.volume = targetVol;
 
         if (state.isPlaying) {
           const dt = state.lastTickTime ? (now - state.lastTickTime) / 1000 : 0;
@@ -2623,14 +2660,35 @@
           resolve();
           return;
         }
-        const clamped = Math.max(0, Math.min(state.rawVideoDuration - 0.01, timeSec));
-        if (Math.abs(els.sourceVideo.currentTime - clamped) < 0.005) {
-          resolve();
+        const clamped = Math.max(0, Math.min(state.rawVideoDuration - 0.02, timeSec));
+        const finishFramePaint = () => {
+          if (typeof els.sourceVideo.requestVideoFrameCallback === 'function') {
+            let done = false;
+            const timer = setTimeout(() => {
+              if (!done) {
+                done = true;
+                resolve();
+              }
+            }, 80);
+            els.sourceVideo.requestVideoFrameCallback(() => {
+              if (!done) {
+                done = true;
+                clearTimeout(timer);
+                resolve();
+              }
+            });
+          } else {
+            requestAnimationFrame(() => resolve());
+          }
+        };
+
+        if (Math.abs(els.sourceVideo.currentTime - clamped) < 0.005 && els.sourceVideo.readyState >= 2) {
+          finishFramePaint();
           return;
         }
         const onSeeked = () => {
           els.sourceVideo.removeEventListener('seeked', onSeeked);
-          resolve();
+          finishFramePaint();
         };
         els.sourceVideo.addEventListener('seeked', onSeeked);
         els.sourceVideo.currentTime = clamped;
@@ -2689,11 +2747,11 @@
       const evenW = width % 2 === 0 ? width : width - 1;
       const evenH = height % 2 === 0 ? height : height - 1;
       const candidates = [
+        'avc1.42001f', // Baseline Level 3.1 (가장 넓은 플레이어 호환성)
+        'avc1.42E01E', // Constrained Baseline Level 3.0
+        'avc1.4d001f', // Main Level 3.1
         'avc1.42002a', // Baseline Level 4.2 (1080p60 지원)
         'avc1.64002a', // High Level 4.2
-        'avc1.4d002a', // Main Level 4.2
-        'avc1.42001f', // Baseline Level 3.1 (720p 이하)
-        'avc1.42E01E', // Constrained Baseline Level 3.0
       ];
 
       for (const codec of candidates) {
@@ -2701,7 +2759,7 @@
           codec,
           width: evenW,
           height: evenH,
-          bitrate: 4_500_000,
+          bitrate: 2_800_000,
           framerate: fps,
         };
         try {
@@ -2795,335 +2853,3 @@
       const renderCanvas = document.createElement('canvas');
       renderCanvas.width = width;
       renderCanvas.height = height;
-      const renderCtx = renderCanvas.getContext('2d');
-
-      els.exportStatusDesc.textContent = '장면 및 자막 프레임 H.264 인코딩 중...';
-
-      for (let f = 0; f < totalFrames; f++) {
-        if (encoderFatalError) throw encoderFatalError;
-        if (state.cancelRenderFlag) {
-          if (videoEncoder.state !== 'closed') videoEncoder.close();
-          if (audioEncoder.state !== 'closed') audioEncoder.close();
-          return;
-        }
-
-        const timeSec = f / fps;
-        const slot = getClipAtTime(timeSec);
-        if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
-          await seekVideoElement(slot.localTime);
-        }
-
-        drawCompositeFrame(renderCtx, width, height, timeSec);
-        drawCompositeFrame(previewCtx, state.width, state.height, timeSec);
-
-        const timestampUs = Math.round(timeSec * 1_000_000);
-        const frame = new VideoFrame(renderCanvas, {
-          timestamp: timestampUs,
-          duration: Math.round(1_000_000 / fps),
-        });
-        videoEncoder.encode(frame, { keyFrame: f % 30 === 0 });
-        frame.close();
-
-        const pct = Math.min(99, Math.round(((f + 1) / totalFrames) * 100));
-        els.exportProgressBar.style.width = `${pct}%`;
-        els.exportPercentLabel.textContent = `${pct}%`;
-
-        if (f % 5 === 0) {
-          await new Promise((r) => setTimeout(r, 0));
-        }
-      }
-
-      if (encoderFatalError) throw encoderFatalError;
-      els.exportStatusDesc.textContent = 'MP4 컨테이너 마무리 중...';
-      await videoEncoder.flush();
-      await audioEncoder.flush();
-      muxer.finalize();
-
-      const mp4Blob = new Blob([target.buffer], { type: 'video/mp4' });
-      triggerFileDownload(mp4Blob, `studio-export-${Date.now()}.mp4`);
-      els.exportProgressBar.style.width = '100%';
-      els.exportPercentLabel.textContent = '100%';
-      showToast('MP4 파일 저장이 완료되었습니다!', 'success');
-    }
-
-    async function encodeWithMediaRecorderFallback() {
-      els.exportStatusDesc.textContent = '호환성 인코딩 모드로 저장 중...';
-      const fps = 30;
-      const stream = els.previewCanvas.captureStream(fps);
-
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioCtx();
-      const dest = audioCtx.createMediaStreamDestination();
-
-      try {
-        const mixedBuf = await renderMixedAudioBuffer(state.totalDuration, audioCtx.sampleRate);
-        const src = audioCtx.createBufferSource();
-        src.buffer = mixedBuf;
-        src.connect(dest);
-        src.start(0);
-        dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
-      } catch (e) {
-        // 오디오 트랙 없이 진행
-      }
-
-      const mimeCandidates = [
-        'video/mp4;codecs=avc1',
-        'video/mp4',
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
-        'video/webm',
-      ];
-      const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) || '';
-      const isMp4 = mimeType.includes('mp4');
-      const ext = isMp4 ? 'mp4' : 'webm';
-
-      const chunks = [];
-      const recOptions = mimeType ? { mimeType, videoBitsPerSecond: 4_000_000 } : { videoBitsPerSecond: 4_000_000 };
-      const rec = new MediaRecorder(stream, recOptions);
-      rec.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunks.push(e.data);
-      };
-
-      rec.start(200);
-      const startTs = performance.now();
-
-      await new Promise((resolve) => {
-        const step = () => {
-          if (state.cancelRenderFlag) {
-            if (rec.state !== 'inactive') rec.stop();
-            resolve();
-            return;
-          }
-          const t = (performance.now() - startTs) / 1000;
-          const slot = getClipAtTime(t);
-          if (slot && slot.clip.type === 'video' && els.sourceVideo.src) {
-            if (els.sourceVideo.paused) {
-              els.sourceVideo.currentTime = slot.localTime;
-              els.sourceVideo.play().catch(() => {});
-            }
-          } else if (!els.sourceVideo.paused) {
-            els.sourceVideo.pause();
-          }
-
-          drawCompositeFrame(previewCtx, state.width, state.height, Math.min(t, state.totalDuration));
-          const pct = Math.min(99, Math.round((t / state.totalDuration) * 100));
-          els.exportProgressBar.style.width = `${pct}%`;
-          els.exportPercentLabel.textContent = `${pct}%`;
-
-          if (t >= state.totalDuration) {
-            els.sourceVideo.pause();
-            if (rec.state !== 'inactive') rec.stop();
-            resolve();
-          } else {
-            requestAnimationFrame(step);
-          }
-        };
-        requestAnimationFrame(step);
-      });
-
-      if (rec.state !== 'inactive') {
-        await new Promise((r) => { rec.onstop = r; });
-      }
-      await audioCtx.close();
-
-      if (!state.cancelRenderFlag) {
-        const outBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
-        triggerFileDownload(outBlob, `studio-export-${Date.now()}.${ext}`);
-        els.exportProgressBar.style.width = '100%';
-        els.exportPercentLabel.textContent = '100%';
-        showToast(`영상 저장(${ext.toUpperCase()})이 완료되었습니다!`, 'success');
-      }
-    }
-
-    function triggerFileDownload(blob, filename) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    }
-
-    // ------------------------------------------------------------------------
-    // 12. UI 이벤트 리스너 바인딩
-    // ------------------------------------------------------------------------
-    // 상단 헤더 & 빈 화면 버튼
-    els.btnHeaderAddBlank.addEventListener('click', () => addBlankScene('start'));
-    els.btnAddIntro.addEventListener('click', () => addBlankScene('start'));
-    els.btnAddOutro.addEventListener('click', () => addBlankScene('end'));
-    els.btnEmptyStartBlank.addEventListener('click', () => addBlankScene('start'));
-
-    els.btnHeaderSample.addEventListener('click', generateSampleProject);
-    els.btnEmptyStartSample.addEventListener('click', generateSampleProject);
-
-    els.btnHeaderOpenVideo.addEventListener('click', () => els.videoFileInput.click());
-    els.btnEmptySelectVideo.addEventListener('click', () => els.videoFileInput.click());
-
-    els.videoFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      loadVideoFromUrl(url);
-      e.target.value = '';
-    });
-
-    // 드래그 앤 드롭 비디오 로드
-    els.stageDropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      els.stageDropZone.classList.add('drag-over');
-    });
-    els.stageDropZone.addEventListener('dragleave', () => {
-      els.stageDropZone.classList.remove('drag-over');
-    });
-    els.stageDropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      els.stageDropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('video/')) {
-        loadVideoFromUrl(URL.createObjectURL(file));
-      } else {
-        showToast('동영상 파일(MP4, WebM, MOV 등)만 드롭할 수 있습니다.', 'error');
-      }
-    });
-
-    // 재생 컨트롤
-    els.btnPlayPause.addEventListener('click', togglePlay);
-    els.btnStopReset.addEventListener('click', () => {
-      pausePlayback();
-      seekTo(0);
-    });
-    els.timelineScrubber.addEventListener('input', (e) => {
-      seekTo(parseFloat(e.target.value));
-    });
-
-    // 타임라인 트랙 클릭 이동
-    [els.trackLaneClips, els.trackLaneSubs, els.trackLaneNarration].forEach((lane) => {
-      lane.addEventListener('click', (e) => {
-        if (!state.isLoaded || state.totalDuration <= 0) return;
-        const rect = lane.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        seekTo(ratio * state.totalDuration);
-      });
-    });
-
-    // 자막 추가
-    els.btnAddSubNow.addEventListener('click', () => {
-      const start = parseFloat((state.isLoaded ? state.currentTime : 0).toFixed(1));
-      const maxDur = state.isLoaded && state.totalDuration > 0 ? state.totalDuration : 60;
-      const end = parseFloat(Math.min(maxDur, start + 2.5).toFixed(1));
-
-      state.subtitles.push({
-        id: Date.now() + Math.random(),
-        start,
-        end: end > start ? end : parseFloat((start + 1.0).toFixed(1)),
-        text: '새 자막 내용을 입력하세요',
-      });
-      state.subtitles.sort((a, b) => a.start - b.start);
-      renderSubtitleList();
-      if (state.isLoaded) renderFrame(state.currentTime);
-    });
-
-    // 내레이션 녹음 & 오디오 파일
-    els.btnStartRecord.addEventListener('click', startNarrationRecording);
-    els.btnStopRecord.addEventListener('click', stopNarrationRecording);
-    els.btnUploadAudio.addEventListener('click', () => els.audioFileInput.click());
-
-    els.audioFileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const offset = state.isLoaded ? state.currentTime : 0;
-      await setNarrationAudioBlob(file, file.name, offset);
-      e.target.value = '';
-    });
-
-    els.inputNarrationOffset.addEventListener('change', (e) => {
-      state.narration.offset = Math.max(0, parseFloat(e.target.value) || 0);
-      e.target.value = state.narration.offset.toFixed(1);
-      renderTimelineTracks();
-    });
-
-    els.btnDeleteNarration.addEventListener('click', () => {
-      els.narrationAudio.pause();
-      els.narrationAudio.src = '';
-      state.narration.hasAudio = false;
-      state.narration.audioBuffer = null;
-      state.narration.blob = null;
-      els.narrationInfoCard.classList.add('hidden');
-      renderTimelineTracks();
-      showToast('내레이션 트랙이 삭제되었습니다.', 'info');
-    });
-
-    // 볼륨 & 스타일 슬라이더
-    els.sliderVideoVol.addEventListener('input', (e) => {
-      const pct = Number(e.target.value);
-      state.mixer.videoVolume = pct / 100;
-      els.valVideoVol.textContent = `${pct}%`;
-    });
-
-    els.sliderNarrationVol.addEventListener('input', (e) => {
-      const pct = Number(e.target.value);
-      state.mixer.narrationVolume = pct / 100;
-      els.valNarrationVol.textContent = `${pct}%`;
-    });
-
-    els.sliderFontSize.addEventListener('input', (e) => {
-      state.style.fontSize = Number(e.target.value);
-      els.valFontSize.textContent = `${state.style.fontSize}px`;
-      renderFrame(state.currentTime);
-    });
-
-    els.sliderBottomMargin.addEventListener('input', (e) => {
-      state.style.bottomMargin = Number(e.target.value);
-      els.valBottomMargin.textContent = `${state.style.bottomMargin}px`;
-      renderFrame(state.currentTime);
-    });
-
-    els.pickerSubTextColor.addEventListener('input', (e) => {
-      state.style.textColor = e.target.value;
-      renderFrame(state.currentTime);
-    });
-
-    els.pickerSubBgColor.addEventListener('input', (e) => {
-      state.style.bgColor = e.target.value;
-      renderFrame(state.currentTime);
-    });
-
-    els.chkSubBgEnabled.addEventListener('change', (e) => {
-      state.style.bgEnabled = e.target.checked;
-      renderFrame(state.currentTime);
-    });
-
-    els.chkTextShadowEnabled.addEventListener('change', (e) => {
-      state.style.textShadow = e.target.checked;
-      renderFrame(state.currentTime);
-    });
-
-    els.sliderSubBgOpacity.addEventListener('input', (e) => {
-      const pct = Number(e.target.value);
-      state.style.bgOpacity = pct / 100;
-      els.valSubBgOpacity.textContent = `${pct}%`;
-      renderFrame(state.currentTime);
-    });
-
-    // MP4 내보내기 & 취소
-    els.btnExportMp4.addEventListener('click', exportToMp4);
-    els.btnCancelExport.addEventListener('click', () => {
-      state.cancelRenderFlag = true;
-    });
-
-    // 스페이스바 재생/일시정지 단축키
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-        e.preventDefault();
-        togglePlay();
-      }
-    });
-
-    // 초기 리스트 렌더링
-    renderSceneList();
-    renderSubtitleList();
-  </script>
-</body>
-</html>
