@@ -1278,6 +1278,11 @@
             </button>
           </div>
 
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <input type="password" id="ttsApiKeyInput" class="field-input" style="height: 26px; font-size: 11px; padding: 0 7px;" placeholder="Gemini API 키 (외부 호스팅 시 입력)" />
+            <button type="button" id="btnToggleApiKeyVis" class="btn btn-secondary btn-sm" style="height: 26px; font-size: 10px; padding: 0 7px; flex-shrink: 0;" title="API 키 표시/숨기기">표시</button>
+          </div>
+
           <textarea id="ttsScriptInput" class="sub-textarea" style="min-height: 58px; font-size: 12px;" placeholder="읽어줄 내레이션 대본을 입력하세요..."></textarea>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
@@ -1571,6 +1576,8 @@
       micLevelFill: document.getElementById('micLevelFill'),
       btnUploadAudio: document.getElementById('btnUploadAudio'),
       btnFillTtsFromSubs: document.getElementById('btnFillTtsFromSubs'),
+      ttsApiKeyInput: document.getElementById('ttsApiKeyInput'),
+      btnToggleApiKeyVis: document.getElementById('btnToggleApiKeyVis'),
       ttsScriptInput: document.getElementById('ttsScriptInput'),
       ttsVoiceSelect: document.getElementById('ttsVoiceSelect'),
       ttsToneInput: document.getElementById('ttsToneInput'),
@@ -2601,8 +2608,8 @@
       els.btnGenerateTtsText.textContent = 'AI 음성 생성 중...';
 
       try {
-        const apiKey = '';
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+        const apiKey = (els.ttsApiKeyInput.value || '').trim();
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(apiKey)}`;
         const payload = {
           contents: [
             {
@@ -2645,7 +2652,11 @@
         await setNarrationAudioBlob(wavBlob, `AI TTS (${voiceName})`, startOffset);
       } catch (err) {
         console.error(err);
-        showToast(`AI 음성 생성 중 오류가 발생했습니다: ${err.message}`, 'error');
+        const isAuthErr = String(err.message || '').includes('403') || String(err.message || '').includes('400');
+        const guideMsg = isAuthErr
+          ? 'API 권한 오류(403): 외부 웹사이트에서는 위 입력칸에 본인의 Gemini API 키를 입력해야 AI 음성이 생성됩니다.'
+          : `AI 음성 생성 중 오류가 발생했습니다: ${err.message}`;
+        showToast(guideMsg, 'error');
       } finally {
         els.btnGenerateTts.disabled = false;
         els.btnGenerateTtsText.textContent = 'AI 음성 생성 후 트랙에 넣기';
@@ -3271,6 +3282,19 @@
       els.btnStopRecord.addEventListener('click', stopNarrationRecording);
 
       // AI TTS 이벤트
+      const savedApiKey = localStorage.getItem('studio_gemini_api_key') || '';
+      if (savedApiKey) {
+        els.ttsApiKeyInput.value = savedApiKey;
+      }
+      els.ttsApiKeyInput.addEventListener('input', (e) => {
+        localStorage.setItem('studio_gemini_api_key', e.target.value.trim());
+      });
+      els.btnToggleApiKeyVis.addEventListener('click', () => {
+        const isPwd = els.ttsApiKeyInput.type === 'password';
+        els.ttsApiKeyInput.type = isPwd ? 'text' : 'password';
+        els.btnToggleApiKeyVis.textContent = isPwd ? '숨김' : '표시';
+      });
+
       els.btnFillTtsFromSubs.addEventListener('click', () => {
         if (state.subtitles.length === 0) {
           showToast('불러올 자막 대본이 없습니다.', 'info');
