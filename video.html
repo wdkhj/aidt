@@ -2657,15 +2657,25 @@
           Mp4MuxerModule &&
           Mp4MuxerModule.Muxer;
 
+        let exported = false;
         if (canUseWebCodecs) {
-          await encodeWithWebCodecsMp4();
-        } else {
+          try {
+            await encodeWithWebCodecsMp4();
+            exported = true;
+          } catch (webCodecsErr) {
+            if (state.cancelRenderFlag) throw webCodecsErr;
+            console.warn('WebCodecs 인코딩 실패, 자동 폴백으로 전환합니다:', webCodecsErr);
+            els.exportStatusDesc.textContent = '호환성 인코딩 모드로 자동 전환하여 저장 중...';
+          }
+        }
+
+        if (!exported && !state.cancelRenderFlag) {
           await encodeWithMediaRecorderFallback();
         }
       } catch (err) {
         if (!state.cancelRenderFlag) {
           console.error(err);
-          showToast('MP4 인코딩 중 오류가 발생했습니다. 폴백 방식으로 다시 시도해 주세요.', 'error');
+          showToast(`저장 중 오류가 발생했습니다: ${err?.message || '알 수 없는 오류'}`, 'error');
         }
       } finally {
         state.isRendering = false;
@@ -2674,11 +2684,48 @@
       }
     }
 
+    async function resolveSupportedVideoConfig(width, height, fps) {
+      // H.264 인코더는 가로·세로 픽셀이 짝수여야 정상 작동함
+      const evenW = width % 2 === 0 ? width : width - 1;
+      const evenH = height % 2 === 0 ? height : height - 1;
+      const candidates = [
+        'avc1.42002a', // Baseline Level 4.2 (1080p60 지원)
+        'avc1.64002a', // High Level 4.2
+        'avc1.4d002a', // Main Level 4.2
+        'avc1.42001f', // Baseline Level 3.1 (720p 이하)
+        'avc1.42E01E', // Constrained Baseline Level 3.0
+      ];
+
+      for (const codec of candidates) {
+        const cfg = {
+          codec,
+          width: evenW,
+          height: evenH,
+          bitrate: 4_500_000,
+          framerate: fps,
+        };
+        try {
+          const support = await VideoEncoder.isConfigSupported(cfg);
+          if (support && support.supported) {
+            return cfg;
+          }
+        } catch (e) {
+          // 다음 코덱 후보 확인
+        }
+      }
+      return null;
+    }
+
     async function encodeWithWebCodecsMp4() {
       const { Muxer, ArrayBufferTarget } = Mp4MuxerModule;
-      const width = state.width;
-      const height = state.height;
       const fps = 30;
+      const videoConfig = await resolveSupportedVideoConfig(state.width, state.height, fps);
+      if (!videoConfig) {
+        throw new Error('지원되는 H.264 하드웨어/소프트웨어 코덱을 찾지 못했습니다.');
+      }
+
+      const width = videoConfig.width;
+      const height = videoConfig.height;
       const totalFrames = Math.ceil(state.totalDuration * fps);
       const sampleRate = 48000;
 
@@ -2693,22 +2740,23 @@
         fastStart: 'in-memory',
       });
 
+      let encoderFatalError = null;
       const videoEncoder = new VideoEncoder({
         output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        error: (e) => console.error('VideoEncoder error:', e),
+        error: (e) => {
+          encoderFatalError = e;
+          console.error('VideoEncoder error:', e);
+        },
       });
 
-      videoEncoder.configure({
-        codec: 'avc1.42001f',
-        width,
-        height,
-        bitrate: 4_500_000,
-        framerate: fps,
-      });
+      videoEncoder.configure(videoConfig);
 
       const audioEncoder = new AudioEncoder({
         output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
-        error: (e) => console.error('AudioEncoder error:', e),
+        error: (e) => {
+          encoderFatalError = e;
+          console.error('AudioEncoder error:', e);
+        },
       });
 
       audioEncoder.configure({
@@ -2725,6 +2773,7 @@
       const rightCh = mixedAudio.numberOfChannels > 1 ? mixedAudio.getChannelData(1) : leftCh;
 
       for (let offset = 0; offset < totalAudioSamples; offset += chunkFrames) {
+        if (encoderFatalError) throw encoderFatalError;
         const count = Math.min(chunkFrames, totalAudioSamples - offset);
         const planar = new Float32Array(count * 2);
         planar.set(leftCh.subarray(offset, offset + count), 0);
@@ -2751,9 +2800,10 @@
       els.exportStatusDesc.textContent = '장면 및 자막 프레임 H.264 인코딩 중...';
 
       for (let f = 0; f < totalFrames; f++) {
+        if (encoderFatalError) throw encoderFatalError;
         if (state.cancelRenderFlag) {
-          videoEncoder.close();
-          audioEncoder.close();
+          if (videoEncoder.state !== 'closed') videoEncoder.close();
+          if (audioEncoder.state !== 'closed') audioEncoder.close();
           return;
         }
 
@@ -2764,7 +2814,7 @@
         }
 
         drawCompositeFrame(renderCtx, width, height, timeSec);
-        drawCompositeFrame(previewCtx, width, height, timeSec);
+        drawCompositeFrame(previewCtx, state.width, state.height, timeSec);
 
         const timestampUs = Math.round(timeSec * 1_000_000);
         const frame = new VideoFrame(renderCanvas, {
@@ -2783,6 +2833,7 @@
         }
       }
 
+      if (encoderFatalError) throw encoderFatalError;
       els.exportStatusDesc.textContent = 'MP4 컨테이너 마무리 중...';
       await videoEncoder.flush();
       await audioEncoder.flush();
@@ -2796,7 +2847,7 @@
     }
 
     async function encodeWithMediaRecorderFallback() {
-      els.exportStatusDesc.textContent = '실시간 스트림 합성 모드로 인코딩 중...';
+      els.exportStatusDesc.textContent = '호환성 인코딩 모드로 저장 중...';
       const fps = 30;
       const stream = els.previewCanvas.captureStream(fps);
 
@@ -2815,23 +2866,31 @@
         // 오디오 트랙 없이 진행
       }
 
-      const isNativeMp4 = MediaRecorder.isTypeSupported('video/mp4');
-      const mimeType = isNativeMp4 ? 'video/mp4' : 'video/webm';
-      const ext = isNativeMp4 ? 'mp4' : 'webm';
+      const mimeCandidates = [
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm',
+      ];
+      const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) || '';
+      const isMp4 = mimeType.includes('mp4');
+      const ext = isMp4 ? 'mp4' : 'webm';
 
       const chunks = [];
-      const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+      const recOptions = mimeType ? { mimeType, videoBitsPerSecond: 4_000_000 } : { videoBitsPerSecond: 4_000_000 };
+      const rec = new MediaRecorder(stream, recOptions);
       rec.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
-      rec.start();
+      rec.start(200);
       const startTs = performance.now();
 
       await new Promise((resolve) => {
         const step = () => {
           if (state.cancelRenderFlag) {
-            rec.stop();
+            if (rec.state !== 'inactive') rec.stop();
             resolve();
             return;
           }
@@ -2853,7 +2912,7 @@
 
           if (t >= state.totalDuration) {
             els.sourceVideo.pause();
-            rec.stop();
+            if (rec.state !== 'inactive') rec.stop();
             resolve();
           } else {
             requestAnimationFrame(step);
@@ -2862,13 +2921,17 @@
         requestAnimationFrame(step);
       });
 
-      await new Promise((r) => { rec.onstop = r; });
+      if (rec.state !== 'inactive') {
+        await new Promise((r) => { rec.onstop = r; });
+      }
       await audioCtx.close();
 
       if (!state.cancelRenderFlag) {
-        const outBlob = new Blob(chunks, { type: mimeType });
+        const outBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
         triggerFileDownload(outBlob, `studio-export-${Date.now()}.${ext}`);
-        showToast(`영상 내보내기(${ext.toUpperCase()})가 완료되었습니다!`, 'success');
+        els.exportProgressBar.style.width = '100%';
+        els.exportPercentLabel.textContent = '100%';
+        showToast(`영상 저장(${ext.toUpperCase()})이 완료되었습니다!`, 'success');
       }
     }
 
