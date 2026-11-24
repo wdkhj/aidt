@@ -1403,11 +1403,6 @@
           <span>반투명 자막 배경 박스 표시</span>
         </label>
 
-        <label class="checkbox-row" style="margin-top: 2px;">
-          <input type="checkbox" id="chkTextShadowEnabled" />
-          <span>글자 그림자 효과 적용 (제목 · 자막)</span>
-        </label>
-
         <div class="control-group">
           <div class="control-label-row">
             <span>배경 박스 불투명도</span>
@@ -1415,6 +1410,31 @@
           </div>
           <input type="range" id="sliderSubBgOpacity" min="10" max="100" value="75" />
         </div>
+
+        <div style="background: rgba(15, 23, 42, 0.55); border: 1px solid #283548; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 7px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <label class="checkbox-row" style="margin: 0;">
+              <input type="checkbox" id="chkSubStrokeEnabled" />
+              <span>자막 글자 테두리(외곽선) 넣기</span>
+            </label>
+            <label class="color-chip-label" title="테두리 색상 선택">
+              <span>테두리색</span>
+              <input type="color" id="pickerSubStrokeColor" value="#000000" />
+            </label>
+          </div>
+          <div class="control-group" style="gap: 3px;">
+            <div class="control-label-row" style="font-size: 11px; color: #94a3b8;">
+              <span>테두리 두께</span>
+              <span id="valSubStrokeWidth" class="control-val">4px</span>
+            </div>
+            <input type="range" id="sliderSubStrokeWidth" min="1" max="12" step="0.5" value="4" />
+          </div>
+        </div>
+
+        <label class="checkbox-row" style="margin-top: 2px;">
+          <input type="checkbox" id="chkTextShadowEnabled" />
+          <span>글자 그림자 효과 적용 (제목 · 자막)</span>
+        </label>
       </div>
     </aside>
   </main>
@@ -1493,6 +1513,9 @@
         bgColor: '#000000',
         bgEnabled: true,
         bgOpacity: 0.75,
+        strokeEnabled: false,
+        strokeColor: '#000000',
+        strokeWidth: 4,
         textShadow: false,
       },
 
@@ -1617,6 +1640,10 @@
       pickerSubTextColor: document.getElementById('pickerSubTextColor'),
       pickerSubBgColor: document.getElementById('pickerSubBgColor'),
       chkSubBgEnabled: document.getElementById('chkSubBgEnabled'),
+      chkSubStrokeEnabled: document.getElementById('chkSubStrokeEnabled'),
+      pickerSubStrokeColor: document.getElementById('pickerSubStrokeColor'),
+      sliderSubStrokeWidth: document.getElementById('sliderSubStrokeWidth'),
+      valSubStrokeWidth: document.getElementById('valSubStrokeWidth'),
       chkTextShadowEnabled: document.getElementById('chkTextShadowEnabled'),
       sliderSubBgOpacity: document.getElementById('sliderSubBgOpacity'),
       valSubBgOpacity: document.getElementById('valSubBgOpacity'),
@@ -1739,6 +1766,10 @@
         bgColor: '#0f172a',
         bgColor2: '#312e81',
         textColor: '#ffffff',
+        strokeEnabled: false,
+        strokeColor: '#000000',
+        strokeWidth: 4,
+        effect: 'none',
       };
 
       if (isIntro) {
@@ -1762,7 +1793,7 @@
     // ------------------------------------------------------------------------
     // 5. 캔버스 프레임(빈 장면 · 비디오 · 자막) 합성 렌더링 엔진
     // ------------------------------------------------------------------------
-    function drawWrappedLines(ctx, text, centerX, startY, maxWidth, lineHeight) {
+    function drawWrappedLines(ctx, text, centerX, startY, maxWidth, lineHeight, strokeOpts = null) {
       const paragraphs = String(text || '').split('\n');
       const lines = [];
       for (const p of paragraphs) {
@@ -1779,12 +1810,25 @@
         lines.push(current);
       }
       lines.forEach((line, idx) => {
-        ctx.fillText(line, centerX, startY + idx * lineHeight);
+        const y = startY + idx * lineHeight;
+        if (strokeOpts && strokeOpts.enabled && strokeOpts.width > 0) {
+          ctx.save();
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.miterLimit = 2;
+          ctx.lineWidth = strokeOpts.width;
+          ctx.strokeStyle = strokeOpts.color || '#000000';
+          ctx.strokeText(line, centerX, y);
+          ctx.restore();
+        }
+        ctx.fillText(line, centerX, y);
       });
       return lines.length;
     }
 
-    function drawBlankClip(ctx, width, height, clip) {
+    function drawBlankClip(ctx, width, height, clip, localTime = 0) {
       ctx.save();
       if (clip.bgMode === 'gradient') {
         const grad = ctx.createLinearGradient(0, 0, width, height);
@@ -1801,6 +1845,43 @@
       const subSize = Math.round(30 * scale);
       const hasSub = clip.hasSubtitle && clip.subtitle && clip.subtitle.trim().length > 0;
 
+      // 타이틀 등장/모션 효과 계산
+      const effect = clip.effect || 'none';
+      const animDur = Math.min(1.0, Math.max(0.35, (clip.duration || 3) * 0.45));
+      const rawProg = animDur > 0 ? Math.min(1, Math.max(0, localTime / animDur)) : 1;
+      // 부드러운 easeOutCubic 곡선
+      const ease = 1 - Math.pow(1 - rawProg, 3);
+
+      let alpha = 1;
+      let offsetY = 0;
+      let zoomScale = 1;
+      let titleText = (clip.title || '').trim() || '제목 없음';
+      let subText = hasSub ? clip.subtitle.trim() : '';
+
+      if (effect === 'fade') {
+        alpha = ease;
+      } else if (effect === 'slideUp') {
+        alpha = ease;
+        offsetY = (1 - ease) * 48 * scale;
+      } else if (effect === 'zoomIn') {
+        alpha = ease;
+        zoomScale = 0.82 + 0.18 * ease;
+      } else if (effect === 'typewriter') {
+        const totalChars = titleText.length + subText.length;
+        const visibleCount = Math.max(1, Math.ceil(totalChars * rawProg));
+        if (visibleCount <= titleText.length) {
+          titleText = titleText.slice(0, visibleCount);
+          subText = '';
+        } else {
+          subText = subText.slice(0, visibleCount - titleText.length);
+        }
+      }
+
+      ctx.translate(width / 2, height / 2 + offsetY);
+      ctx.scale(zoomScale, zoomScale);
+      ctx.translate(-width / 2, -height / 2);
+      ctx.globalAlpha = alpha;
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = clip.textColor || '#ffffff';
@@ -1815,15 +1896,30 @@
         ctx.shadowBlur = 0;
       }
 
-      const titleText = (clip.title || '').trim() || '제목 없음';
+      const titleStroke = clip.strokeEnabled
+        ? {
+            enabled: true,
+            color: clip.strokeColor || '#000000',
+            width: Math.max(1.5, (Number(clip.strokeWidth) || 4) * 2.2 * scale),
+          }
+        : null;
+
+      const subStroke = clip.strokeEnabled
+        ? {
+            enabled: true,
+            color: clip.strokeColor || '#000000',
+            width: Math.max(1, (Number(clip.strokeWidth) || 4) * 1.4 * scale),
+          }
+        : null;
+
       ctx.font = `800 ${titleSize}px -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", sans-serif`;
       const titleY = hasSub ? height * 0.44 : height * 0.5;
-      drawWrappedLines(ctx, titleText, width / 2, titleY, width * 0.84, titleSize * 1.25);
+      drawWrappedLines(ctx, titleText, width / 2, titleY, width * 0.84, titleSize * 1.25, titleStroke);
 
-      if (hasSub) {
+      if (hasSub && subText.length > 0) {
         ctx.font = `500 ${subSize}px -apple-system, BlinkMacSystemFont, "Pretendard", "Malgun Gothic", sans-serif`;
-        ctx.globalAlpha = 0.88;
-        drawWrappedLines(ctx, clip.subtitle.trim(), width / 2, height * 0.58, width * 0.8, subSize * 1.3);
+        ctx.globalAlpha = alpha * 0.92;
+        drawWrappedLines(ctx, subText, width / 2, height * 0.58, width * 0.8, subSize * 1.3, subStroke);
       }
       ctx.restore();
     }
@@ -1894,6 +1990,18 @@
         ctx.shadowBlur = 0;
       }
 
+      if (state.style.strokeEnabled && state.style.strokeWidth > 0) {
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.miterLimit = 2;
+        ctx.lineWidth = Math.max(1, state.style.strokeWidth * 2 * scale);
+        ctx.strokeStyle = state.style.strokeColor || '#000000';
+        lines.forEach((line, i) => {
+          const y = boxY + padY + lineHeight * (i + 0.5);
+          ctx.strokeText(line, width / 2, y);
+        });
+      }
+
       ctx.fillStyle = state.style.textColor || '#ffffff';
       lines.forEach((line, i) => {
         const y = boxY + padY + lineHeight * (i + 0.5);
@@ -1910,7 +2018,7 @@
       const slot = getClipAtTime(t);
       if (slot) {
         if (slot.clip.type === 'blank') {
-          drawBlankClip(ctx, width, height, slot.clip);
+          drawBlankClip(ctx, width, height, slot.clip, slot.localTime);
         } else if (slot.clip.type === 'video' && els.sourceVideo.readyState >= 2 && els.sourceVideo.videoWidth > 0) {
           const vw = els.sourceVideo.videoWidth;
           const vh = els.sourceVideo.videoHeight;
@@ -2073,6 +2181,7 @@
 
         if (clip.type === 'blank') {
           const isGrad = clip.bgMode === 'gradient';
+          const currentEffect = clip.effect || 'none';
           card.innerHTML = `
             <div class="scene-card-head">
               <span class="scene-tag blank">#${idx + 1} 빈 장면 (제목 카드)</span>
@@ -2099,14 +2208,24 @@
                 <input type="number" class="mini-num-input" data-field="duration" step="0.5" min="0.5" max="60" value="${clip.duration}" />
               </label>
               <label style="display:flex; align-items:center; gap:5px;">
+                <span>효과</span>
+                <select class="mini-select" data-field="effect">
+                  <option value="none" ${currentEffect === 'none' ? 'selected' : ''}>없음 (고정)</option>
+                  <option value="fade" ${currentEffect === 'fade' ? 'selected' : ''}>페이드 인</option>
+                  <option value="slideUp" ${currentEffect === 'slideUp' ? 'selected' : ''}>위로 슬라이드</option>
+                  <option value="zoomIn" ${currentEffect === 'zoomIn' ? 'selected' : ''}>줌 인 (확대)</option>
+                  <option value="typewriter" ${currentEffect === 'typewriter' ? 'selected' : ''}>타자기 (타이핑)</option>
+                </select>
+              </label>
+            </div>
+            <div class="scene-meta-row">
+              <label style="display:flex; align-items:center; gap:5px;">
                 <span>배경</span>
                 <select class="mini-select" data-field="bgMode">
                   <option value="solid" ${!isGrad ? 'selected' : ''}>단색</option>
                   <option value="gradient" ${isGrad ? 'selected' : ''}>그라데이션</option>
                 </select>
               </label>
-            </div>
-            <div class="scene-meta-row">
               <div style="display:flex; align-items:center; gap:8px;">
                 <label class="color-chip-label">
                   <span>${isGrad ? '시작색' : '배경색'}</span>
@@ -2121,10 +2240,21 @@
                     : ''
                 }
               </div>
+            </div>
+            <div class="scene-meta-row">
               <label class="color-chip-label">
                 <span>글자색</span>
                 <input type="color" data-field="textColor" value="${clip.textColor || '#ffffff'}" />
               </label>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label class="checkbox-row" style="font-size:11px; gap:5px;">
+                  <input type="checkbox" data-field="strokeEnabled" ${clip.strokeEnabled ? 'checked' : ''} style="width:13px; height:13px;" />
+                  <span>테두리 윤곽선</span>
+                </label>
+                <label class="color-chip-label" title="타이틀 테두리 색상">
+                  <input type="color" data-field="strokeColor" value="${clip.strokeColor || '#000000'}" />
+                </label>
+              </div>
             </div>
           `;
 
@@ -2168,6 +2298,15 @@
             renderFrame(state.currentTime);
           });
 
+          card.querySelector('[data-field="effect"]').addEventListener('change', (e) => {
+            clip.effect = e.target.value;
+            // 효과 변경 즉시 변화를 확인할 수 있도록 해당 장면 시작 지점으로 이동 후 재생
+            seekTo(clip.startTime);
+            if (!state.isPlaying) {
+              startPlayback();
+            }
+          });
+
           card.querySelector('[data-field="bgMode"]').addEventListener('change', (e) => {
             clip.bgMode = e.target.value;
             renderSceneList();
@@ -2189,6 +2328,20 @@
 
           card.querySelector('[data-field="textColor"]').addEventListener('input', (e) => {
             clip.textColor = e.target.value;
+            renderFrame(state.currentTime);
+          });
+
+          card.querySelector('[data-field="strokeEnabled"]').addEventListener('change', (e) => {
+            clip.strokeEnabled = e.target.checked;
+            renderFrame(state.currentTime);
+          });
+
+          card.querySelector('[data-field="strokeColor"]').addEventListener('input', (e) => {
+            clip.strokeColor = e.target.value;
+            if (!clip.strokeEnabled) {
+              clip.strokeEnabled = true;
+              card.querySelector('[data-field="strokeEnabled"]').checked = true;
+            }
             renderFrame(state.currentTime);
           });
         } else {
@@ -3494,6 +3647,30 @@
 
       els.chkSubBgEnabled.addEventListener('change', (e) => {
         state.style.bgEnabled = e.target.checked;
+        renderFrame(state.currentTime);
+      });
+
+      els.chkSubStrokeEnabled.addEventListener('change', (e) => {
+        state.style.strokeEnabled = e.target.checked;
+        renderFrame(state.currentTime);
+      });
+
+      els.pickerSubStrokeColor.addEventListener('input', (e) => {
+        state.style.strokeColor = e.target.value;
+        if (!state.style.strokeEnabled) {
+          state.style.strokeEnabled = true;
+          els.chkSubStrokeEnabled.checked = true;
+        }
+        renderFrame(state.currentTime);
+      });
+
+      els.sliderSubStrokeWidth.addEventListener('input', (e) => {
+        state.style.strokeWidth = Number(e.target.value);
+        els.valSubStrokeWidth.textContent = `${state.style.strokeWidth}px`;
+        if (!state.style.strokeEnabled) {
+          state.style.strokeEnabled = true;
+          els.chkSubStrokeEnabled.checked = true;
+        }
         renderFrame(state.currentTime);
       });
 
