@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>우주 탐험 보드게임 (최대 15인 개인전)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: 'Jua', sans-serif;
+      --font-body: 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+      color: #f8fafc;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    .font-jua {
+      font-family: var(--font-display);
+    }
+
+    /* Animated Starfield Background */
+    .stars-bg {
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40px 70px, #fde047, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 90px 40px, #93c5fd, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 230px 180px, #f9a8d4, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 310px 60px, #ffffff, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 350px 250px;
+      animation: twinkle 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.75; }
+      100% { opacity: 1; }
+    }
+
+    /* Floating Sun & Planets */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(3deg); }
+    }
+    .animate-float {
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    /* 3D Dice Styles */
+    .dice-scene {
+      width: 68px;
+      height: 68px;
+      perspective: 400px;
+    }
+
+    .dice-cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.85s cubic-bezier(0.2, 0.85, 0.3, 1.05);
+    }
+
+    .dice-face {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(145deg, #ffffff, #e2e8f0);
+      border: 3px solid #cbd5e1;
+      border-radius: 14px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.12);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 8px;
+      place-items: center;
+    }
+
+    .pip {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #1e293b;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .pip.red {
+      background: #ef4444;
+      width: 15px;
+      height: 15px;
+    }
+
+    .face-1 { transform: rotateY(0deg) translateZ(34px); }
+    .face-2 { transform: rotateY(90deg) translateZ(34px); }
+    .face-3 { transform: rotateX(90deg) translateZ(34px); }
+    .face-4 { transform: rotateX(-90deg) translateZ(34px); }
+    .face-5 { transform: rotateY(-90deg) translateZ(34px); }
+    .face-6 { transform: rotateY(180deg) translateZ(34px); }
+
+    /* Board Tile Card */
+    .board-tile {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .board-tile:hover {
+      transform: translateY(-2px) scale(1.02);
+      z-index: 20;
+    }
+    .board-tile.active-tile {
+      box-shadow: 0 0 0 3px #facc15, 0 0 22px rgba(250, 204, 21, 0.75);
+      z-index: 25;
+    }
+
+    /* Player Token Animation */
+    .player-token {
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .player-token.current-turn {
+      animation: pulseRing 1.3s infinite;
+      z-index: 30;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9); }
+      70% { transform: scale(1.18); box-shadow: 0 0 0 8px rgba(250, 204, 21, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.6);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(129, 140, 248, 0.9);
+    }
+  </style>
+</head>
+<body class="stars-bg text-slate-100 select-none">
+
+  <!-- ==================== 1. SETUP & LOBBY SCREEN (로컬 + 실시간 멀티플레이) ==================== -->
+  <div id="setupScreen" class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6">
+    <div class="max-w-4xl w-full bg-slate-900/90 backdrop-blur-md border-2 border-indigo-500/40 rounded-3xl shadow-2xl p-5 sm:p-8">
+      <!-- Title Header -->
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs sm:text-sm font-bold mb-2.5">
+          <span>🚀 로그인 없는 실시간 멀티플레이 & 교실 보드게임 (최대 15명)</span>
+        </div>
+        <h1 class="font-jua text-3xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-yellow-200 to-amber-400 drop-shadow-md">
+          우주 탐험 보드게임
+        </h1>
+        <p class="text-slate-300 text-xs sm:text-sm mt-2">
+          주사위를 굴려 퀴즈를 풀고 목적지 <span class="text-sky-300 font-bold">해왕성</span>에 가장 먼저 도착하세요!
+        </p>
+      </div>
+
+      <!-- Mode Selector Tabs -->
+      <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-700/80 mb-5">
+        <button type="button" id="tabJoinBtn" onclick="switchSetupTab('join')" class="py-2.5 px-2 sm:px-4 rounded-xl font-jua text-sm sm:text-lg transition bg-indigo-600 text-white shadow">
+          📱 방 참여하기
+        </button>
+        <button type="button" id="tabHostBtn" onclick="switchSetupTab('host')" class="py-2.5 px-2 sm:px-4 rounded-xl font-jua text-sm sm:text-lg transition text-slate-400 hover:text-white">
+          👑 방 만들기 (호스트)
+        </button>
+        <button type="button" id="tabLocalBtn" onclick="switchSetupTab('local')" class="py-2.5 px-2 sm:px-4 rounded-xl font-jua text-sm sm:text-lg transition text-slate-400 hover:text-white">
+          🖥️ 한 기기 플레이
+        </button>
+      </div>
+
+      <!-- Built-in Server Connection Status Strip -->
+      <div id="firebaseStatusBar" class="mb-5 px-4 py-2.5 rounded-2xl bg-slate-800/90 border border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+        <div class="flex items-center gap-2">
+          <span id="fbStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <span id="fbStatusText" class="text-slate-200 font-medium">실시간 멀티플레이 서버 연결 중...</span>
+        </div>
+        <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-xs">
+          ✨ 별도 설정 불필요
+        </span>
+      </div>
+
+      <!-- TAB A: JOIN MULTIPLAYER ROOM (참여자) -->
+      <div id="panelJoin" class="space-y-4">
+        <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700">
+          <h2 class="font-jua text-xl sm:text-2xl text-sky-300 mb-1">📱 탐험 방 입장하기 (로그인 불필요)</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mb-4">선생님 화면의 4자리 방 번호를 입력하거나 QR코드를 스캔하면 자동 입력됩니다.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">🔢 4자리 방 번호 (Room Code)</label>
+              <input type="text" id="joinRoomCodeInput" maxlength="4" inputmode="numeric" placeholder="예: 4829"
+                class="w-full px-4 py-3 rounded-xl bg-slate-950 border-2 border-slate-600 focus:border-sky-400 text-center font-jua text-2xl tracking-widest text-amber-300 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">👨‍🚀 내 탐험가 이름 (닉네임)</label>
+              <input type="text" id="joinNicknameInput" maxlength="12" placeholder="예: 김우주"
+                class="w-full px-4 py-3 rounded-xl bg-slate-950 border-2 border-slate-600 focus:border-sky-400 text-center font-bold text-lg text-white focus:outline-none" />
+            </div>
+          </div>
+
+          <button type="button" id="joinRoomBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 hover:from-sky-300 hover:to-purple-400 text-white font-jua text-2xl shadow-lg active:scale-95 transition cursor-pointer">
+            🚀 탐험 방 입장하기
+          </button>
+        </div>
+
+        <!-- Waiting Lobby for Joined Player -->
+        <div id="playerWaitingLobby" class="hidden bg-indigo-950/70 rounded-2xl p-5 border-2 border-indigo-400/50">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-jua text-sm">방 번호: <span id="joinedRoomCodeBadge">----</span></span>
+              <h3 class="font-jua text-xl text-white mt-1.5">⏳ 호스트가 게임을 시작할 때까지 대기 중...</h3>
+            </div>
+            <button type="button" id="leaveRoomBtn" class="px-3 py-1.5 rounded-xl bg-rose-900/70 hover:bg-rose-800 text-rose-200 text-xs font-bold">
+              방 나가기
+            </button>
+          </div>
+          <div class="text-xs text-indigo-200 mb-2">현재 접속한 탐험가 (<span id="joinedLobbyCount">0</span> / 15명):</div>
+          <div id="joinedLobbyPlayersList" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- TAB B: HOST MULTIPLAYER ROOM (호스트/선생님) -->
+      <div id="panelHost" class="hidden space-y-4">
+        <div id="hostCreateBox" class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 text-center">
+          <h2 class="font-jua text-xl sm:text-2xl text-amber-300 mb-2">👑 실시간 멀티플레이 방 개설 (최대 15명)</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            방을 만들면 <strong>4자리 방 코드</strong>와 <strong>자동 접속 QR코드</strong>가 생성됩니다.<br/>
+            참여자는 QR코드만 찍으면 Firebase 설정이나 로그인 없이 바로 입장할 수 있습니다!
+          </p>
+          <div class="max-w-xs mx-auto mb-4 text-left">
+            <label class="block text-xs font-bold text-slate-300 mb-1">호스트 표시 이름 (선택)</label>
+            <input type="text" id="hostNameInput" maxlength="12" value="선생님(진행자)"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-600 text-sm font-bold text-white focus:border-amber-400 focus:outline-none" />
+          </div>
+          <button type="button" id="createRoomBtn" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-jua text-2xl shadow-lg active:scale-95 transition cursor-pointer">
+            ✨ 새 탐험 방 만들기
+          </button>
+        </div>
+
+        <!-- Active Host Lobby -->
+        <div id="hostLobbyBox" class="hidden bg-slate-800/90 rounded-2xl p-5 border-2 border-amber-400/50">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-center mb-5 pb-5 border-b border-slate-700">
+            <!-- QR Code Display -->
+            <div class="flex flex-col items-center justify-center bg-white p-3.5 rounded-2xl shadow-lg mx-auto">
+              <div id="qrCodeContainer"></div>
+              <span class="text-[11px] font-bold text-slate-800 mt-2">카메라로 스캔하여 즉시 입장</span>
+            </div>
+
+            <!-- Room Info & Copy Link -->
+            <div class="md:col-span-2 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span class="text-xs text-amber-300 font-bold">참여용 4자리 방 번호</span>
+                  <div id="hostRoomCodeDisplay" class="font-jua text-4xl sm:text-5xl text-white tracking-widest">----</div>
+                </div>
+                <button type="button" id="closeHostRoomBtn" class="px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-700 text-rose-200 text-xs font-bold">
+                  방 닫기
+                </button>
+              </div>
+
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">참여자 초대 링크 (클릭하여 복사)</label>
+                <div class="flex gap-2">
+                  <input type="text" id="inviteLinkInput" readonly
+                    class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-sky-300 font-mono" />
+                  <button type="button" id="copyInviteLinkBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0 cursor-pointer">
+                    📋 링크 복사
+                  </button>
+                </div>
+              </div>
+              <p class="text-xs text-emerald-300">
+                💡 QR코드로 접속하거나 4자리 방 번호만 입력하면 로그인 없이 최대 15명이 즉시 입장합니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- Joined Players in Host Lobby -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-sm sm:text-base text-white">
+                👨‍🚀 입장한 탐험가 목록 (<span id="hostPlayerCountText" class="text-amber-300">0</span> / 15명)
+              </h3>
+              <span class="text-xs text-slate-400">최소 1명 이상 입장 시 시작 가능</span>
+            </div>
+            <div id="hostLobbyPlayersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 min-h-[64px]">
+              <!-- Real-time joined players -->
+            </div>
+          </div>
+
+          <button type="button" id="startMultiplayerGameBtn" disabled class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 hover:from-emerald-300 hover:to-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-jua text-2xl shadow-lg transition cursor-pointer">
+            🚀 전원 출발! 우주 탐험 시작하기
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB C: SINGLE-DEVICE LOCAL MODE (기존 한 기기 플레이) -->
+      <div id="panelLocal" class="hidden">
+        <!-- Player Count Selector -->
+        <div class="bg-slate-800/80 rounded-2xl p-4 sm:p-5 border border-slate-700 mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <label class="block text-base sm:text-lg font-bold text-amber-300">
+                👨‍🚀 참가 인원 선택 (1명 ~ 15명)
+              </label>
+              <p class="text-xs sm:text-sm text-slate-400">한 대의 PC나 태블릿을 함께 보며 번갈아 조작하는 모드입니다.</p>
+            </div>
+            <div class="flex items-center gap-3 self-start sm:self-center">
+              <button type="button" id="decreasePlayersBtn" class="w-11 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-xl font-bold flex items-center justify-center transition">
+                -
+              </button>
+              <div class="w-24 text-center">
+                <span id="playerCountDisplay" class="font-jua text-3xl text-white">4</span>
+                <span class="text-sm text-slate-300 ml-1">명</span>
+              </div>
+              <button type="button" id="increasePlayersBtn" class="w-11 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xl font-bold flex items-center justify-center transition">
+                +
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-700/70">
+            <span class="text-xs text-slate-400 self-center mr-1">빠른 선택:</span>
+            <button type="button" onclick="setPlayerCount(2)" class="px-3 py-1.5 rounded-lg bg-slate-700/80 hover:bg-indigo-600 text-xs font-bold transition">2명</button>
+            <button type="button" onclick="setPlayerCount(4)" class="px-3 py-1.5 rounded-lg bg-slate-700/80 hover:bg-indigo-600 text-xs font-bold transition">4명</button>
+            <button type="button" onclick="setPlayerCount(6)" class="px-3 py-1.5 rounded-lg bg-slate-700/80 hover:bg-indigo-600 text-xs font-bold transition">6명</button>
+            <button type="button" onclick="setPlayerCount(10)" class="px-3 py-1.5 rounded-lg bg-slate-700/80 hover:bg-indigo-600 text-xs font-bold transition">10명</button>
+            <button type="button" onclick="setPlayerCount(15)" class="px-3 py-1.5 rounded-lg bg-amber-600/80 hover:bg-amber-500 text-xs font-bold transition">15명 (최대)</button>
+          </div>
+        </div>
+
+        <!-- Player Name Inputs Grid -->
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm sm:text-base font-bold text-slate-200">📝 탐험가 이름 입력 (클릭하여 수정 가능)</h2>
+            <button type="button" id="resetNamesBtn" class="text-xs text-sky-400 hover:text-sky-300 underline">기본 이름으로 초기화</button>
+          </div>
+          <div id="playerInputsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+            <!-- Dynamically generated player inputs -->
+          </div>
+        </div>
+
+        <button type="button" id="startGameBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-jua text-2xl shadow-lg shadow-orange-500/30 active:scale-95 transition cursor-pointer">
+          🚀 한 기기에서 우주 탐험 시작하기!
+        </button>
+      </div>
+
+      <!-- Game Rules Summary Footer -->
+      <div class="mt-5 pt-4 border-t border-slate-700/80 text-xs text-slate-300 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <p>📌 <strong>규칙 1:</strong> 주사위를 굴려 나온 수만큼 이동합니다.</p>
+        <p>📌 <strong>규칙 2:</strong> 퀴즈를 맞히면 유지, <span class="text-rose-400 font-bold">틀리면 원래 자리로 복귀!</span></p>
+        <p>📌 <strong>규칙 3:</strong> 가장 먼저 해왕성(GOAL)에 도착하면 승리!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. MAIN GAME SCREEN ==================== -->
+  <div id="gameScreen" class="hidden min-h-screen flex flex-col">
+    <!-- Top Header Bar -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-indigo-500/30 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-40">
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl sm:text-3xl">🚀</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-jua text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-amber-300 leading-none">
+              우주 탐험 보드게임
+            </h1>
+            <span id="liveRoomBadge" class="hidden px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-xs font-bold">
+              🟢 방 #----
+            </span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">주사위를 굴려 목적지 해왕성에 가장 먼저 도착하라!</p>
+        </div>
+      </div>
+
+      <!-- Controls & Status -->
+      <div class="flex items-center gap-2">
+        <button type="button" id="rulesModalBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs sm:text-sm font-bold text-sky-300 transition">
+          📜 게임 규칙
+        </button>
+        <button type="button" id="leaderboardBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs sm:text-sm font-bold text-amber-300 transition">
+          🏆 현재 순위
+        </button>
+        <button type="button" id="soundToggleBtn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs sm:text-sm font-bold text-slate-200 transition" title="효과음 켜기/끄기">
+          🔊 효과음
+        </button>
+        <button type="button" id="backToSetupBtn" class="px-3 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 text-xs sm:text-sm font-bold text-rose-200 transition">
+          ⚙️ 로비/종료
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace: Board Area + Right Control/Scoreboard Sidebar -->
+    <div class="flex-1 flex flex-col lg:flex-row gap-3 p-3 sm:p-4 max-w-[1800px] w-full mx-auto">
+      
+      <!-- LEFT / CENTER: GAME BOARD TRACK (START -> 1..32 -> GOAL) -->
+      <main class="flex-1 bg-slate-900/75 border-2 border-indigo-500/30 rounded-3xl p-3 sm:p-4 shadow-2xl flex flex-col justify-between relative overflow-hidden">
+        
+        <!-- Decorative Solar System Banner inside Board -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3 px-2 py-1.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/20">
+          <div class="flex items-center gap-2 text-xs sm:text-sm text-indigo-200">
+            <span class="animate-float inline-block text-lg">☀️</span>
+            <span>태양계 탐험 경로: <strong>지구(START)</strong> ➔ 수성 ➔ 화성 ➔ 목성 ➔ 토성 ➔ <strong>해왕성(GOAL)</strong></span>
+          </div>
+          <div class="flex items-center gap-3 text-[11px] sm:text-xs">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>퀴즈/미션</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>앞으로 이동</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>한 번 쉬기</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>행성 도착</span>
+          </div>
+        </div>
+
+        <!-- Winding Board Grid (Desktop: 7 columns x 5 rows snake path = 35 cells for 35 exact positions!) -->
+        <!-- Let's check exact count: START (0) + 1..26 (26) + 27_storm (1) + 27_sat (1) + 28..32 (5) + GOAL (1) = 35 tiles! 7 x 5 = 35 tiles exact! -->
+        <div id="boardGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 sm:gap-2.5 flex-1">
+          <!-- 35 Board Tiles injected by JS in exact snake path order -->
+        </div>
+
+        <!-- Bottom Action Toast / Log Bar -->
+        <div id="gameStatusBanner" class="mt-3 px-4 py-2.5 rounded-2xl bg-slate-800/90 border border-slate-700 flex items-center justify-between gap-2 text-xs sm:text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📡</span>
+            <span id="statusLogText" class="text-slate-200 font-medium">탐험 준비 완료! 현재 차례 탐험가가 주사위를 굴려주세요.</span>
+          </div>
+          <span class="text-[11px] text-slate-400 hidden sm:inline">칸을 클릭하면 해당 칸의 문제를 미리 볼 수 있습니다.</span>
+        </div>
+      </main>
+
+      <!-- RIGHT SIDEBAR: DICE CONTROLLER & 15-PLAYER SCOREBOARD -->
+      <aside class="w-full lg:w-[360px] xl:w-[390px] flex flex-col gap-3 shrink-0">
+        
+        <!-- Active Turn & 3D Dice Box -->
+        <div class="bg-gradient-to-b from-indigo-950/95 to-slate-900/95 border-2 border-amber-400/50 rounded-3xl p-4 shadow-xl">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/30">
+              현재 차례 (TURN)
+            </span>
+            <span id="turnCounterBadge" class="text-xs text-slate-400 font-medium">1라운드 진행 중</span>
+          </div>
+
+          <!-- Current Player Info -->
+          <div class="flex items-center gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-700/80 mb-4">
+            <div id="currentPlayerAvatar" class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-jua text-xl shadow-md shrink-0">
+              1
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h2 id="currentPlayerName" class="font-jua text-xl sm:text-2xl text-white truncate">탐험가 1</h2>
+                <span id="currentPlayerSkipBadge" class="hidden px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500 text-rose-300 text-[11px] font-bold shrink-0">
+                  ⏸️ 쉬기 적용됨
+                </span>
+              </div>
+              <p id="currentPlayerPosText" class="text-xs sm:text-sm text-sky-300 mt-0.5">
+                현재 위치: <strong>START (지구)</strong>
+              </p>
+            </div>
+          </div>
+
+          <!-- 3D Dice + Roll Button -->
+          <div class="flex items-center justify-around gap-4 bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20">
+            <div class="dice-scene cursor-pointer" id="diceClickArea" title="주사위 굴리기">
+              <div class="dice-cube" id="diceCube">
+                <!-- Face 1 -->
+                <div class="dice-face face-1">
+                  <div></div><div></div><div></div>
+                  <div></div><div class="pip red"></div><div></div>
+                  <div></div><div></div><div></div>
+                </div>
+                <!-- Face 2 -->
+                <div class="dice-face face-2">
+                  <div class="pip"></div><div></div><div></div>
+                  <div></div><div></div><div></div>
+                  <div></div><div></div><div class="pip"></div>
+                </div>
+                <!-- Face 3 -->
+                <div class="dice-face face-3">
+                  <div class="pip"></div><div></div><div></div>
+                  <div></div><div class="pip"></div><div></div>
+                  <div></div><div></div><div class="pip"></div>
+                </div>
+                <!-- Face 4 -->
+                <div class="dice-face face-4">
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                  <div></div><div></div><div></div>
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                </div>
+                <!-- Face 5 -->
+                <div class="dice-face face-5">
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                  <div></div><div class="pip"></div><div></div>
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                </div>
+                <!-- Face 6 -->
+                <div class="dice-face face-6">
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                  <div class="pip"></div><div></div><div class="pip"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col gap-2">
+              <button type="button" id="rollDiceBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-jua text-xl shadow-lg shadow-orange-500/25 active:scale-95 transition cursor-pointer">
+                🎲 주사위 굴리기
+              </button>
+              <div id="turnPermissionHint" class="text-center text-[11px] text-amber-300 font-bold hidden">
+                다른 탐험가의 차례를 기다리는 중...
+              </div>
+              <div class="text-center text-xs text-slate-300">
+                나온 눈: <span id="diceResultLabel" class="font-bold text-amber-300 text-sm">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Players Scoreboard (1 to 15) -->
+        <div class="bg-slate-900/90 border border-slate-700/80 rounded-3xl p-4 flex-1 flex flex-col min-h-[260px]">
+          <div class="flex items-center justify-between mb-2.5">
+            <h3 class="font-bold text-sm sm:text-base text-slate-200 flex items-center gap-1.5">
+              <span>👨‍🚀 탐험가 현황</span>
+              <span id="totalPlayersBadge" class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">4명</span>
+            </h3>
+            <span class="text-[11px] text-slate-400">위치 수동 조정 가능 (±1)</span>
+          </div>
+
+          <div id="playersScoreboardList" class="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-[420px]">
+            <!-- Player rows injected dynamically -->
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ==================== 3. TILE EVENT / QUIZ MODAL ==================== -->
+  <div id="tileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div id="tileModalCard" class="max-w-xl w-full bg-slate-900 border-2 border-indigo-400/60 rounded-3xl shadow-2xl overflow-hidden transform transition-all">
+      <!-- Modal Header -->
+      <div id="modalHeaderBg" class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span id="modalTileBadge" class="px-3 py-1 rounded-xl bg-slate-950/40 text-white font-jua text-lg">
+            2번 칸
+          </span>
+          <span id="modalTypeTag" class="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">
+            우주 퀴즈
+          </span>
+        </div>
+        <div id="modalPlayerChip" class="flex items-center gap-1.5 bg-slate-950/40 px-3 py-1 rounded-full text-xs font-bold text-amber-200">
+          <span>🚀 탐험가 1</span>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 sm:p-7">
+        <div class="text-center mb-5">
+          <div id="modalIcon" class="text-5xl mb-3">🪐</div>
+          <h3 id="modalTitle" class="font-jua text-2xl sm:text-3xl text-white leading-snug break-keep">
+            태양계에서 가장 큰 행성은 무엇일까요?
+          </h3>
+          <p id="modalSubDesc" class="text-sm sm:text-base text-slate-300 mt-2 break-keep"></p>
+        </div>
+
+        <!-- Answer Reveal Box (For Quiz / Mission Tiles) -->
+        <div id="answerSection" class="mb-6">
+          <button type="button" id="toggleAnswerBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-indigo-400/40 text-indigo-300 font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>💡 정답 / 해설 보기</span>
+          </button>
+          <div id="answerBox" class="hidden mt-3 p-4 rounded-2xl bg-indigo-950/80 border border-indigo-400/40 text-center">
+            <p class="text-xs text-indigo-300 font-bold mb-1">정답 및 해설</p>
+            <p id="modalAnswerText" class="text-lg sm:text-xl font-bold text-amber-300 break-keep">
+              목성
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="modalActions" class="flex flex-col sm:flex-row gap-3">
+          <!-- Dynamically populated based on tile type -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. RULES / LEADERBOARD / VICTORY MODAL ==================== -->
+  <div id="infoModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div class="max-w-lg w-full bg-slate-900 border-2 border-amber-400/50 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-between">
+        <h3 id="infoModalTitle" class="font-jua text-2xl text-slate-950">🏆 우주 탐험 순위</h3>
+        <button type="button" id="closeInfoModalBtn" class="w-8 h-8 rounded-full bg-slate-950/20 hover:bg-slate-950/40 text-slate-950 font-bold flex items-center justify-center">
+          ✕
+        </button>
+      </div>
+      <div id="infoModalBody" class="p-6 max-h-[70vh] overflow-y-auto">
+        <!-- Content injected dynamically -->
+      </div>
+      <div id="infoModalFooter" class="px-6 py-4 bg-slate-950/60 border-t border-slate-800 flex justify-end gap-2">
+        <button type="button" id="infoModalConfirmBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /**
+     * =========================================================================
+     * 우주 탐험 보드게임 (최대 15인 개인전) - 로컬 & 내장 실시간 멀티플레이
+     * =========================================================================
+     */
+
+    // 1. 15명 고유 색상 및 이모지 아바타 팔레트
+    const PLAYER_STYLES = [
+      { bg: '#ef4444', border: '#fca5a5', icon: '🚀' }, // 1. 빨강
+      { bg: '#3b82f6', border: '#93c5fd', icon: '🛸' }, // 2. 파랑
+      { bg: '#10b981', border: '#6ee7b7', icon: '🛰️' }, // 3. 에메랄드
+      { bg: '#f59e0b', border: '#fcd34d', icon: '🌟' }, // 4. 주황/호박
+      { bg: '#8b5cf6', border: '#c4b5fd', icon: '🪐' }, // 5. 보라
+      { bg: '#ec4899', border: '#f9a8d4', icon: '☄️' }, // 6. 핑크
+      { bg: '#06b6d4', border: '#67e8f9', icon: '🌍' }, // 7. 시안
+      { bg: '#84cc16', border: '#bef264', icon: '👽' }, // 8. 라임
+      { bg: '#f97316', border: '#fdba74', icon: '☀️' }, // 9. 오렌지
+      { bg: '#6366f1', border: '#a5b4fc', icon: '🌙' }, // 10. 인디고
+      { bg: '#14b8a6', border: '#5eead4', icon: '🔭' }, // 11. 틸
+      { bg: '#e11d48', border: '#fda4af', icon: '🌠' }, // 12. 로즈
+      { bg: '#0284c7', border: '#7dd3fc', icon: '🌌' }, // 13. 스카이블루
+      { bg: '#a855f7', border: '#d8b4fe', icon: '👾' }, // 14. 퍼플
+      { bg: '#eab308', border: '#fef08a', icon: '👨‍🚀' }  // 15. 옐로우
+    ];
+
+    // 2. 보드판 전체 35칸 데이터 (원본 이미지의 모든 칸 및 문구 100% 반영)
+    const BOARD_TILES = [
+      {
+        index: 0,
+        code: 'START',
+        type: 'start',
+        icon: '🌍',
+        title: '출발!',
+        text: '지구에서 우주 탐사를 시작하자!',
+        colorClass: 'from-sky-600/90 to-blue-800/90 border-sky-400'
+      },
+      {
+        index: 1,
+        code: '1',
+        type: 'safe',
+        icon: '👨‍🚀',
+        title: '출발! 지구에서 우주 탐사를 시작하자!',
+        text: '안전한 출발 지점입니다. 다음 턴에 힘차게 나아가세요!',
+        colorClass: 'from-sky-500/30 to-blue-600/30 border-sky-400/60'
+      },
+      {
+        index: 2,
+        code: '2',
+        type: 'quiz',
+        icon: '🪐',
+        title: '태양계에서 가장 큰 행성은 무엇일까요?',
+        text: '퀴즈를 맞히면 자리에 머무르고, 틀리면 원래 자리로 돌아갑니다.',
+        answer: '목성 (지름이 지구의 약 11배에 달하는 태양계 최대 행성입니다.)',
+        colorClass: 'from-purple-500/30 to-indigo-600/30 border-purple-400/60'
+      },
+      {
+        index: 3,
+        code: '3',
+        type: 'move',
+        moveSteps: 1,
+        icon: '🛰️',
+        title: '우주 탐사선 발견! 한 칸 앞으로',
+        text: '탐사선의 안내를 받아 1칸 앞으로 전진합니다!',
+        colorClass: 'from-amber-400/30 to-yellow-600/30 border-amber-400/70'
+      },
+      {
+        index: 4,
+        code: '4',
+        type: 'skip',
+        icon: '☄️',
+        title: '소행성 충돌! 한 번 쉬기',
+        text: '우주선을 수리해야 합니다. 다음 차례를 한 번 쉽니다.',
+        colorClass: 'from-rose-500/35 to-red-700/35 border-rose-400/70'
+      },
+      {
+        index: 5,
+        code: '5',
+        type: 'quiz',
+        icon: '🌕',
+        title: '달은 지구의 위성일까요, 아닐까요?',
+        text: 'O / X 로 대답해 보세요!',
+        answer: '위성입니다 (O) — 달은 지구 주위를 공전하는 지구의 유일한 자연위성입니다.',
+        colorClass: 'from-sky-500/30 to-cyan-600/30 border-sky-400/60'
+      },
+      {
+        index: 6,
+        code: '6',
+        type: 'move',
+        moveSteps: 2,
+        icon: '⚡',
+        title: '중력 도움을 받았다! 두 칸 앞으로',
+        text: '행성의 중력(스윙바이)을 이용해 2칸 앞으로 가속합니다!',
+        colorClass: 'from-emerald-500/35 to-green-700/35 border-emerald-400/70'
+      },
+      {
+        index: 7,
+        code: '7',
+        type: 'quiz',
+        icon: '✨',
+        title: '금성은 태양에서 두 번째로 가까운 행성일까요?',
+        text: '태양계 행성 순서를 떠올려 보세요!',
+        answer: '네, 맞습니다 (O) — 수성 다음으로 태양에서 두 번째로 가까운 행성입니다.',
+        colorClass: 'from-amber-500/30 to-orange-600/30 border-amber-400/60'
+      },
+      {
+        index: 8,
+        code: '8',
+        type: 'safe',
+        icon: '🚩',
+        title: '수성 도착! 수성은 태양에서 가장 가까운 행성입니다.',
+        text: '첫 번째 행성 수성을 무사히 탐사했습니다!',
+        colorClass: 'from-orange-400/35 to-amber-600/35 border-orange-300/70'
+      },
+      {
+        index: 9,
+        code: '9',
+        type: 'safe',
+        icon: '📊',
+        title: '탐사자료 발견!!',
+        text: '귀중한 우주 탐사 데이터를 확보했습니다. 안전 지대입니다!',
+        colorClass: 'from-yellow-500/30 to-amber-600/30 border-yellow-300/60'
+      },
+      {
+        index: 10,
+        code: '10',
+        type: 'quiz',
+        icon: '🌌',
+        title: '태양계에 있는 행성은 몇 개 일까요?',
+        text: '수성부터 해왕성까지 모두 세어보세요!',
+        answer: '8개 (수성, 금성, 지구, 화성, 목성, 토성, 천왕성, 해왕성)',
+        colorClass: 'from-purple-500/30 to-fuchsia-600/30 border-purple-400/60'
+      },
+      {
+        index: 11,
+        code: '11',
+        type: 'quiz',
+        icon: '🪐',
+        title: '목성은 고리가 있나요?',
+        text: '토성처럼 목성에도 고리가 있을까요?',
+        answer: '네, 있습니다! (토성처럼 뚜렷하지는 않지만 어둡고 희미한 고리를 가지고 있습니다.)',
+        colorClass: 'from-amber-500/30 to-yellow-600/30 border-amber-400/60'
+      },
+      {
+        index: 12,
+        code: '12',
+        type: 'bonus_quiz',
+        moveSteps: 3,
+        icon: '👽',
+        title: '외계 신호 발견! (보너스 퀴즈)',
+        text: '우주에서 빛의 속도는 약 몇 km/s 일까요? 맞히면 3칸 앞으로!',
+        answer: '약 30만 km/s (정확히는 초속 299,792 km로, 1초에 지구를 약 7바퀴 반 돕니다!)',
+        colorClass: 'from-pink-500/35 to-purple-700/35 border-pink-400/80'
+      },
+      {
+        index: 13,
+        code: '13',
+        type: 'skip',
+        icon: '👨‍🚀',
+        title: '우주미아 한 번 쉬기',
+        text: '항로를 이탈해 경로를 재설정합니다. 다음 차례 한 번 쉬기!',
+        colorClass: 'from-rose-500/35 to-red-700/35 border-rose-400/70'
+      },
+      {
+        index: 14,
+        code: '14',
+        type: 'quiz',
+        icon: '👯',
+        title: "'금성은 지구의 쌍둥이 행성'이라 불리는 이유는 무엇일까요?",
+        text: '(힌트: 크기와 성분)',
+        answer: '지구와 크기, 질량, 밀도 및 구성 성분이 매우 비슷하기 때문입니다.',
+        colorClass: 'from-amber-500/30 to-orange-600/30 border-amber-400/60'
+      },
+      {
+        index: 15,
+        code: '15',
+        type: 'quiz',
+        icon: '❄️',
+        title: '얼음행성은 어디일까요?',
+        text: '태양계 바깥쪽에 위치한 두 거대 얼음행성을 말해보세요!',
+        answer: '천왕성과 해왕성 (물·암모니아·메테인 등의 얼음 성분이 풍부해 얼음 거대 행성이라 부릅니다.)',
+        colorClass: 'from-cyan-500/30 to-blue-600/30 border-cyan-400/60'
+      },
+      {
+        index: 16,
+        code: '16',
+        type: 'quiz',
+        icon: '🔥',
+        title: '가장 뜨거운 행성은?',
+        text: '수성보다도 표면 온도가 더 높은 태양계 최고 온도 행성은?',
+        answer: '금성 (두꺼운 이산화탄소 대기의 온실 효과로 표면 온도가 약 460~470℃에 달합니다.)',
+        colorClass: 'from-pink-500/30 to-rose-600/30 border-pink-400/60'
+      },
+      {
+        index: 17,
+        code: '17',
+        type: 'move',
+        moveSteps: 1,
+        icon: '⭐',
+        title: '한 칸 앞으로',
+        text: '반짝이는 별빛의 안내를 받아 1칸 앞으로 이동합니다!',
+        colorClass: 'from-purple-500/30 to-indigo-600/30 border-purple-400/60'
+      },
+      {
+        index: 18,
+        code: '18',
+        type: 'quiz',
+        icon: '💪',
+        title: '우주인에게 필요한 능력 한 가지 말하기',
+        text: '발표 미션! 우주 탐사를 위해 우주비행사에게 꼭 필요한 역량을 말해보세요.',
+        answer: '예시 정답: 강인한 체력, 위기 대처 능력, 팀워크(협동심), 과학·공학 지식, 침착함 등',
+        colorClass: 'from-amber-500/30 to-yellow-600/30 border-amber-400/60'
+      },
+      {
+        index: 19,
+        code: '19',
+        type: 'skip',
+        icon: '🔭',
+        title: '소행성 군단! 한 번 쉬기',
+        text: '소행성대를 조심히 통과하느라 시간이 걸립니다. 다음 차례 한 번 쉬기!',
+        colorClass: 'from-rose-500/35 to-red-700/35 border-rose-400/70'
+      },
+      {
+        index: 20,
+        code: '20',
+        type: 'quiz',
+        icon: '✈️',
+        title: '비행기가 뜨는 원리 중 추력은?',
+        text: '비행기에 작용하는 4가지 힘(양력, 중력, 추력, 항력) 중 추력을 설명해 보세요!',
+        answer: '엔진이나 프로펠러를 통해 비행기를 앞으로 밀어 나아가게 하는 힘입니다.',
+        colorClass: 'from-yellow-500/30 to-lime-600/30 border-yellow-400/60'
+      },
+      {
+        index: 21,
+        code: '21',
+        type: 'move',
+        moveSteps: 2,
+        icon: '⚡',
+        title: '중력 도움을 받았다! 두 칸 앞으로',
+        text: '강력한 중력 가속으로 2칸 앞으로 점프합니다!',
+        colorClass: 'from-emerald-500/35 to-green-700/35 border-emerald-400/70'
+      },
+      {
+        index: 22,
+        code: '22',
+        type: 'quiz',
+        icon: '🧑‍🚀',
+        title: '우주비행사가 우주에서 떠다니는 이유는 무엇일까요?',
+        text: '지구와 달리 우주 정거장 안에서는 몸이 둥둥 떠다닙니다.',
+        answer: '미세 중력(무중력 상태) 때문입니다. (지구를 향해 계속 자유낙하하고 있기 때문입니다.)',
+        colorClass: 'from-purple-500/30 to-indigo-600/30 border-purple-400/60'
+      },
+      {
+        index: 23,
+        code: '23',
+        type: 'quiz',
+        icon: '🔄',
+        title: '천왕성은 옆으로 누워서 도는 행성일까요?',
+        text: '자전축의 기울기를 떠올려 보세요!',
+        answer: '네, 맞습니다 (O) — 자전축이 약 98도 기울어져 있어 거의 옆으로 누운 채 자전합니다.',
+        colorClass: 'from-amber-500/30 to-orange-600/30 border-amber-400/60'
+      },
+      {
+        index: 24,
+        code: '24',
+        type: 'move',
+        moveSteps: 1,
+        icon: '🚩',
+        title: '화성 도착! 화성은 표면이 거칠고 먼지가 많은 행성입니다. 한 칸 앞으로',
+        text: '붉은 행성 화성 탐사 성공! 보너스로 1칸 앞으로 전진합니다.',
+        colorClass: 'from-orange-500/35 to-red-600/35 border-orange-400/70'
+      },
+      {
+        index: 25,
+        code: '25',
+        type: 'quiz',
+        icon: '🛰️',
+        title: '우주쓰레기에는 어떤 것이 있나요?',
+        text: '지구 궤도를 떠도는 우주쓰레기의 예를 말해 보세요!',
+        answer: '수명이 다한 인공위성, 로켓의 분리된 추진체(잔해), 우주선 파편, 우주인이 놓친 공구 등',
+        colorClass: 'from-yellow-500/30 to-amber-600/30 border-yellow-400/60'
+      },
+      {
+        index: 26,
+        code: '26',
+        type: 'move',
+        moveSteps: 1,
+        icon: '🚩',
+        title: '목성 도착! 목성은 거대한 가스 행성입니다. 한 칸 앞으로',
+        text: '거대 가스 행성 목성 통과! 1칸 앞으로 전진합니다.',
+        colorClass: 'from-amber-500/35 to-orange-600/35 border-amber-400/70'
+      },
+      {
+        index: 27,
+        code: '27',
+        type: 'skip',
+        icon: '📡',
+        title: '우주 방사선 폭풍! 한 번 쉬기',
+        text: '강력한 태양풍과 우주 방사선 폭풍을 피해 대피합니다. 다음 차례 한 번 쉬기!',
+        colorClass: 'from-rose-500/35 to-red-700/35 border-rose-400/70'
+      },
+      {
+        index: 28,
+        code: '27',
+        type: 'quiz',
+        icon: '🛰️',
+        title: '인공위성이 하는 일은?',
+        text: '우리 생활에 도움을 주는 인공위성의 역할을 말해 보세요!',
+        answer: '기상 관측(일기예보), 방송·통신 중계, GPS 위치 확인, 지구 환경 감시, 우주 관측 등',
+        colorClass: 'from-amber-500/30 to-yellow-600/30 border-amber-400/60'
+      },
+      {
+        index: 29,
+        code: '28',
+        type: 'quiz',
+        icon: '📵',
+        title: '통신 두절!! 나는 어떻게 할 것인가?',
+        text: '상황 대처 미션! 지구 본부와 교신이 끊겼을 때 우주 탐험가로서 대처 방법을 발표해 보세요.',
+        answer: '예시 정답: 비상 안테나 점검, 태양전지판 방향 정렬, 예비 통신 채널 가동, 침착하게 매뉴얼 확인 등',
+        colorClass: 'from-orange-500/30 to-amber-600/30 border-orange-400/60'
+      },
+      {
+        index: 30,
+        code: '29',
+        type: 'move',
+        moveSteps: 1,
+        icon: '🪐',
+        title: '토성 도착! 토성은 아름다운 고리를 가진 행성입니다. 한 칸 앞으로',
+        text: '아름다운 얼음과 암석 고리의 토성 도착! 1칸 앞으로 전진합니다.',
+        colorClass: 'from-amber-400/35 to-yellow-600/35 border-amber-300/70'
+      },
+      {
+        index: 31,
+        code: '30',
+        type: 'quiz',
+        icon: '🔎',
+        title: '태양계에서 가장 작은 행성은 어디일까요?',
+        text: '태양과 가장 가까이 있는 작은 행성입니다.',
+        answer: '수성 (명왕성이 왜소행성으로 분류된 이후 태양계에서 가장 작은 행성입니다.)',
+        colorClass: 'from-yellow-500/30 to-amber-600/30 border-yellow-400/60'
+      },
+      {
+        index: 32,
+        code: '31',
+        type: 'move',
+        moveSteps: 2,
+        icon: '⚡',
+        title: '중력 도움을 받았다! 두 칸 앞으로',
+        text: '마지막 스퍼트! 2칸 앞으로 힘차게 날아갑니다!',
+        colorClass: 'from-emerald-500/35 to-green-700/35 border-emerald-400/70'
+      },
+      {
+        index: 33,
+        code: '32',
+        type: 'quiz',
+        icon: '🌟',
+        title: '스스로 빛을 내는 것은?',
+        text: '행성·위성과 달리 스스로 타오르며 빛과 열을 내는 천체를 무엇이라 부를까요?',
+        answer: '항성 (별) — 예: 태양',
+        colorClass: 'from-amber-500/30 to-yellow-600/30 border-amber-400/60'
+      },
+      {
+        index: 34,
+        code: 'GOAL',
+        type: 'goal',
+        icon: '🏆',
+        title: '해왕성 도착! 최종 목적지에 도착했다! 우주 탐험 성공!',
+        text: '축하합니다! 태양계의 마지막 행성 해왕성 정복에 성공했습니다!',
+        colorClass: 'from-blue-600/90 to-indigo-800/90 border-amber-400'
+      }
+    ];
+
+    // 3. 클라이언트 세션 고유 ID (로그인 없이 기기 구분용)
+    let CLIENT_UID = (() => {
+      let id = sessionStorage.getItem('space_board_uid');
+      if (!id) {
+        id = 'u_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        sessionStorage.setItem('space_board_uid', id);
+      }
+      return id;
+    })();
+
+    // 4. 게임 상태 객체 (State)
+    const state = {
+      mode: 'local', // 'local' | 'multiplayer'
+      role: 'local', // 'local' | 'host' | 'player'
+      roomCode: null,
+      myPlayerUid: CLIENT_UID,
+      playerCount: 4,
+      players: [], // { id, uid, name, position, prevPosition, skipNext, finishedRank, style }
+      currentTurnIndex: 0,
+      round: 1,
+      isAnimating: false,
+      soundEnabled: true,
+      finishedCount: 0,
+      lastDiceValue: null,
+      activeEvent: null,
+      statusLog: '탐험 준비 완료! 현재 차례 탐험가가 주사위를 굴려주세요.'
+    };
+
+    // Built-in Firebase Firestore Runtime References
+    const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'space-exploration-board-game';
+    let fbApp = null;
+    let fbDb = null;
+    let fbAuth = null;
+    let currentUser = null;
+    let roomUnsubscribeFn = null;
+    let lastProcessedRollId = null;
+
+    function getRoomDocRef(roomCode) {
+      return doc(fbDb, 'artifacts', APP_ID, 'public', 'data', 'space_rooms', String(roomCode));
+    }
+
+    // 5. Web Audio API 효과음 생성기
+    const AudioFX = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      },
+      playTone(freq, type = 'sine', duration = 0.15, delay = 0, vol = 0.15) {
+        if (!state.soundEnabled) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + delay);
+          osc.stop(this.ctx.currentTime + delay + duration);
+        } catch (e) {}
+      },
+      diceRoll() {
+        for (let i = 0; i < 6; i++) {
+          this.playTone(220 + i * 55, 'triangle', 0.06, i * 0.06, 0.12);
+        }
+      },
+      step() {
+        this.playTone(520, 'sine', 0.08, 0, 0.12);
+      },
+      correct() {
+        this.playTone(523.25, 'triangle', 0.15, 0, 0.18);
+        this.playTone(659.25, 'triangle', 0.15, 0.1, 0.18);
+        this.playTone(783.99, 'triangle', 0.25, 0.2, 0.2);
+      },
+      wrong() {
+        this.playTone(300, 'sawtooth', 0.2, 0, 0.14);
+        this.playTone(220, 'sawtooth', 0.35, 0.16, 0.14);
+      },
+      boost() {
+        this.playTone(440, 'sine', 0.12, 0, 0.15);
+        this.playTone(587.33, 'sine', 0.12, 0.08, 0.15);
+        this.playTone(880, 'sine', 0.25, 0.16, 0.18);
+      },
+      victory() {
+        const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+        notes.forEach((n, idx) => {
+          this.playTone(n, 'triangle', 0.22, idx * 0.12, 0.22);
+        });
+      }
+    };
+
+    // 6. 내장 Firebase 자동 인증 및 초기화
+    async function initBuiltInFirebase() {
+      const statusDot = document.getElementById('fbStatusDot');
+      const statusText = document.getElementById('fbStatusText');
+
+      try {
+        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+          throw new Error('내장 서버 환경 변수를 찾을 수 없습니다.');
+        }
+        const firebaseConfig = JSON.parse(__firebase_config);
+        fbApp = initializeApp(firebaseConfig);
+        fbDb = getFirestore(fbApp);
+        fbAuth = getAuth(fbApp);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          const cred = await signInWithCustomToken(fbAuth, __initial_auth_token);
+          currentUser = cred.user;
+        } else {
+          const cred = await signInAnonymously(fbAuth);
+          currentUser = cred.user;
+        }
+
+        if (currentUser && currentUser.uid) {
+          CLIENT_UID = currentUser.uid;
+          state.myPlayerUid = CLIENT_UID;
+        }
+
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow shadow-emerald-400';
+        statusText.innerHTML = '실시간 멀티플레이 서버 연결 완료 — <strong class="text-emerald-300">로그인 없이 최대 15명 즉시 접속 가능</strong>';
+      } catch (err) {
+        console.error('Built-in Firebase init error:', err);
+        fbDb = null;
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 inline-block';
+        statusText.innerHTML = '현재 오프라인 환경입니다. <strong>[🖥️ 한 기기 플레이]</strong> 탭에서 바로 게임을 진행할 수 있습니다.';
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoom = urlParams.get('room');
+      if (urlRoom) {
+        document.getElementById('joinRoomCodeInput').value = urlRoom.replace(/\D/g, '').slice(0, 4);
+      }
+      switchSetupTab('join');
+    }
+
+    // Setup Tabs Switching
+    window.switchSetupTab = function (tabName) {
+      const tabs = ['join', 'host', 'local'];
+      tabs.forEach((t) => {
+        const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+        const panel = document.getElementById(`panel${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tabName) {
+          btn.className = 'py-2.5 px-2 sm:px-4 rounded-xl font-jua text-sm sm:text-lg transition bg-indigo-600 text-white shadow';
+          panel.classList.remove('hidden');
+        } else {
+          btn.className = 'py-2.5 px-2 sm:px-4 rounded-xl font-jua text-sm sm:text-lg transition text-slate-400 hover:text-white';
+          panel.classList.add('hidden');
+        }
+      });
+    };
+
+    // 7. 실시간 멀티플레이: 방 만들기 (HOST) & 방 참여하기 (PLAYER)
+    function ensureFirebaseReady() {
+      if (!fbDb || !currentUser) {
+        showQuickNoticeModal('⚠️ 서버 연결 확인', '실시간 멀티플레이 서버에 연결되지 않았습니다. [🖥️ 한 기기 플레이] 탭을 이용하거나 페이지를 새로고침해 주세요.');
+        return false;
+      }
+      return true;
+    }
+
+    // Create Room (Host)
+    document.getElementById('createRoomBtn').addEventListener('click', async () => {
+      if (!ensureFirebaseReady()) return;
+
+      const roomCode = String(Math.floor(1000 + Math.random() * 9000));
+      const hostName = document.getElementById('hostNameInput').value.trim() || '선생님(진행자)';
+
+      const initialRoomData = {
+        roomCode,
+        hostUid: CLIENT_UID,
+        hostName,
+        status: 'lobby', // 'lobby' | 'playing' | 'finished'
+        currentTurnIndex: 0,
+        round: 1,
+        diceValue: null,
+        rollEvent: null,
+        activeEvent: null,
+        statusLog: `방 #${roomCode} 생성 완료! 탐험가들의 입장을 기다리고 있습니다.`,
+        createdAt: Date.now(),
+        players: {}
+      };
+
+      try {
+        await setDoc(getRoomDocRef(roomCode), initialRoomData);
+        state.mode = 'multiplayer';
+        state.role = 'host';
+        state.roomCode = roomCode;
+
+        document.getElementById('hostCreateBox').classList.add('hidden');
+        document.getElementById('hostLobbyBox').classList.remove('hidden');
+        document.getElementById('hostRoomCodeDisplay').textContent = roomCode;
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const inviteUrl = `${baseUrl}?room=${roomCode}`;
+        document.getElementById('inviteLinkInput').value = inviteUrl;
+
+        // Render QR Code
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = '';
+        if (window.QRCode) {
+          new QRCode(qrContainer, {
+            text: inviteUrl,
+            width: 148,
+            height: 148,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.L
+          });
+        }
+
+        subscribeToRoom(roomCode);
+      } catch (err) {
+        console.error(err);
+        showQuickNoticeModal('❌ 방 생성 실패', '방을 생성하는 중 일시적인 오류가 발생했습니다. 다시 시도해 주세요.');
+      }
+    });
+
+    // Copy Invite Link
+    document.getElementById('copyInviteLinkBtn').addEventListener('click', () => {
+      const inp = document.getElementById('inviteLinkInput');
+      inp.select();
+      inp.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      const btn = document.getElementById('copyInviteLinkBtn');
+      btn.textContent = '✅ 복사됨!';
+      setTimeout(() => {
+        btn.textContent = '📋 링크 복사';
+      }, 2000);
+    });
+
+    // Close Host Room
+    document.getElementById('closeHostRoomBtn').addEventListener('click', async () => {
+      if (fbDb && currentUser && state.roomCode) {
+        try {
+          await deleteDoc(getRoomDocRef(state.roomCode));
+        } catch (e) {}
+      }
+      detachRoomListener();
+      state.mode = 'local';
+      state.role = 'local';
+      state.roomCode = null;
+      document.getElementById('hostLobbyBox').classList.add('hidden');
+      document.getElementById('hostCreateBox').classList.remove('hidden');
+    });
+
+    // Join Room (Player)
+    document.getElementById('joinRoomBtn').addEventListener('click', async () => {
+      if (!ensureFirebaseReady()) return;
+
+      const roomCode = document.getElementById('joinRoomCodeInput').value.trim();
+      const nickname = document.getElementById('joinNicknameInput').value.trim();
+
+      if (!/^\d{4}$/.test(roomCode)) {
+        showQuickNoticeModal('⚠️ 입력 확인', '4자리 숫자 방 번호를 정확히 입력해주세요.');
+        return;
+      }
+      if (!nickname) {
+        showQuickNoticeModal('⚠️ 입력 확인', '탐험가 이름(닉네임)을 입력해주세요.');
+        return;
+      }
+
+      try {
+        const roomRef = getRoomDocRef(roomCode);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) {
+          showQuickNoticeModal('❌ 방을 찾을 수 없음', `방 번호 [${roomCode}]가 존재하지 않거나 이미 종료되었습니다.`);
+          return;
+        }
+
+        const roomData = roomSnap.data();
+        const playersMap = roomData.players || {};
+        const existingPlayers = Object.values(playersMap);
+
+        const alreadyMe = playersMap[CLIENT_UID];
+        if (!alreadyMe) {
+          if (roomData.status !== 'lobby') {
+            showQuickNoticeModal('🚫 이미 시작된 게임', '이미 우주 탐험이 시작된 방입니다. 다음 라운드에 참여해주세요!');
+            return;
+          }
+          if (existingPlayers.length >= 15) {
+            showQuickNoticeModal('🚫 인원 마감', '최대 정원(15명)이 모두 찼습니다.');
+            return;
+          }
+
+          const newPlayerEntry = {
+            uid: CLIENT_UID,
+            name: nickname,
+            joinedAt: Date.now(),
+            position: 0,
+            prevPosition: 0,
+            skipNext: false,
+            finishedRank: null
+          };
+          await updateDoc(roomRef, {
+            [`players.${CLIENT_UID}`]: newPlayerEntry
+          });
+        } else {
+          await updateDoc(roomRef, {
+            [`players.${CLIENT_UID}.name`]: nickname
+          });
+        }
+
+        state.mode = 'multiplayer';
+        state.role = 'player';
+        state.roomCode = roomCode;
+
+        document.getElementById('joinedRoomCodeBadge').textContent = roomCode;
+        document.getElementById('playerWaitingLobby').classList.remove('hidden');
+        subscribeToRoom(roomCode);
+      } catch (err) {
+        console.error(err);
+        showQuickNoticeModal('❌ 입장 오류', '방 입장 중 오류가 발생했습니다. 방 번호를 다시 확인해주세요.');
+      }
+    });
+
+    // Leave Room (Player)
+    document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
+      if (fbDb && currentUser && state.roomCode) {
+        try {
+          const roomRef = getRoomDocRef(state.roomCode);
+          const snap = await getDoc(roomRef);
+          if (snap.exists()) {
+            const updatedPlayers = { ...(snap.data().players || {}) };
+            delete updatedPlayers[CLIENT_UID];
+            await updateDoc(roomRef, { players: updatedPlayers });
+          }
+        } catch (e) {}
+      }
+      detachRoomListener();
+      state.mode = 'local';
+      state.role = 'local';
+      state.roomCode = null;
+      document.getElementById('playerWaitingLobby').classList.add('hidden');
+    });
+
+    // Host: Kick Player in Lobby
+    window.kickLobbyPlayer = async function (targetUid) {
+      if (state.role !== 'host' || !fbDb || !currentUser || !state.roomCode) return;
+      const roomRef = getRoomDocRef(state.roomCode);
+      const snap = await getDoc(roomRef);
+      if (snap.exists()) {
+        const updatedPlayers = { ...(snap.data().players || {}) };
+        delete updatedPlayers[targetUid];
+        await updateDoc(roomRef, { players: updatedPlayers });
+      }
+    };
+
+    // Host: Start Multiplayer Game
+    document.getElementById('startMultiplayerGameBtn').addEventListener('click', async () => {
+      if (state.role !== 'host' || !fbDb || !currentUser || !state.roomCode) return;
+      if (state.players.length === 0) return;
+
+      const firstPlayerName = state.players[0].name;
+      await updateDoc(getRoomDocRef(state.roomCode), {
+        status: 'playing',
+        currentTurnIndex: 0,
+        round: 1,
+        diceValue: null,
+        rollEvent: null,
+        activeEvent: null,
+        statusLog: `🚀 우주 탐험 시작! 첫 번째 차례는 [${firstPlayerName}] 입니다.`
+      });
+    });
+
+    // Real-Time Room Listener
+    function detachRoomListener() {
+      if (roomUnsubscribeFn) {
+        roomUnsubscribeFn();
+        roomUnsubscribeFn = null;
+      }
+    }
+
+    function subscribeToRoom(roomCode) {
+      detachRoomListener();
+      if (!fbDb || !currentUser) return;
+      const rRef = getRoomDocRef(roomCode);
+
+      roomUnsubscribeFn = onSnapshot(rRef, async (snapshot) => {
+        if (!snapshot.exists()) {
+          detachRoomListener();
+          if (state.mode === 'multiplayer') {
+            gameScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            document.getElementById('playerWaitingLobby').classList.add('hidden');
+            document.getElementById('hostLobbyBox').classList.add('hidden');
+            document.getElementById('hostCreateBox').classList.remove('hidden');
+            state.mode = 'local';
+            state.role = 'local';
+            state.roomCode = null;
+            showQuickNoticeModal('📢 방 종료 안내', '호스트가 탐험 방을 종료했습니다.');
+          }
+          return;
+        }
+
+        const data = snapshot.data();
+        const rawPlayersMap = data.players || {};
+        const sortedPlayers = Object.values(rawPlayersMap)
+          .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))
+          .slice(0, 15)
+          .map((p, idx) => ({
+            id: idx + 1,
+            uid: p.uid,
+            name: p.name,
+            position: p.position || 0,
+            prevPosition: p.prevPosition || 0,
+            skipNext: !!p.skipNext,
+            finishedRank: p.finishedRank || null,
+            style: PLAYER_STYLES[idx % PLAYER_STYLES.length]
+          }));
+
+        state.players = sortedPlayers;
+        state.currentTurnIndex = Math.min(data.currentTurnIndex || 0, Math.max(0, sortedPlayers.length - 1));
+        state.round = data.round || 1;
+        state.lastDiceValue = data.diceValue || null;
+        state.finishedCount = sortedPlayers.filter((p) => p.finishedRank).length;
+
+        // If player was kicked in lobby
+        if (state.role === 'player' && !rawPlayersMap[CLIENT_UID]) {
+          detachRoomListener();
+          document.getElementById('playerWaitingLobby').classList.add('hidden');
+          gameScreen.classList.add('hidden');
+          setupScreen.classList.remove('hidden');
+          state.mode = 'local';
+          state.role = 'local';
+          state.roomCode = null;
+          showQuickNoticeModal('📢 퇴장 안내', '호스트에 의해 방에서 제외되었습니다.');
+          return;
+        }
+
+        // Render Lobby Lists if still in 'lobby'
+        if (data.status === 'lobby') {
+          renderMultiplayerLobbyUI(sortedPlayers);
+          return;
+        }
+
+        // Transition to Game Screen when status === 'playing'
+        if (setupScreen && !setupScreen.classList.contains('hidden')) {
+          setupScreen.classList.add('hidden');
+          gameScreen.classList.remove('hidden');
+          buildBoardGrid();
+        }
+
+        document.getElementById('liveRoomBadge').classList.remove('hidden');
+        document.getElementById('liveRoomBadge').textContent = `🟢 방 #${roomCode} (${state.role === 'host' ? '호스트' : '참여자'})`;
+
+        if (data.statusLog) {
+          logStatus(data.statusLog);
+        }
+
+        // Handle remote dice roll animation trigger
+        if (data.rollEvent && data.rollEvent.id !== lastProcessedRollId) {
+          lastProcessedRollId = data.rollEvent.id;
+          await playRemoteDiceRollAnimation(data.rollEvent.rolled);
+        } else if (data.diceValue) {
+          const diceCube = document.getElementById('diceCube');
+          diceCube.style.transform = `rotateX(360deg) rotateY(360deg) ${diceRotations[data.diceValue]}`;
+          document.getElementById('diceResultLabel').textContent = `${data.diceValue}`;
+        }
+
+        updateAllUI();
+
+        // Sync Active Event Modal across all screens
+        if (data.activeEvent) {
+          const activePlayer = sortedPlayers.find((p) => p.uid === data.activeEvent.playerUid);
+          const tile = BOARD_TILES[data.activeEvent.tileIndex];
+          if (activePlayer && tile) {
+            if (tile.type === 'goal') {
+              handlePlayerReachedGoal(activePlayer, true);
+            } else {
+              openTileEventModal(activePlayer, tile);
+            }
+          }
+        } else {
+          closeTileModal();
+        }
+      }, (error) => {
+        console.error('Firestore onSnapshot error:', error);
+      });
+    }
+
+    function renderMultiplayerLobbyUI(playersList) {
+      // Host Lobby UI
+      document.getElementById('hostPlayerCountText').textContent = playersList.length;
+      const hostStartBtn = document.getElementById('startMultiplayerGameBtn');
+      hostStartBtn.disabled = playersList.length === 0;
+
+      const hostGrid = document.getElementById('hostLobbyPlayersGrid');
+      hostGrid.innerHTML = '';
+      if (playersList.length === 0) {
+        hostGrid.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-slate-400 bg-slate-900/60 rounded-xl border border-dashed border-slate-700">아직 입장한 탐험가가 없습니다. QR코드 또는 방 번호를 안내해 주세요!</div>`;
+      } else {
+        playersList.forEach((p) => {
+          const card = document.createElement('div');
+          card.className = 'flex items-center justify-between gap-2 bg-slate-900 border border-slate-700 rounded-xl p-2';
+          card.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white font-jua text-xs shrink-0" style="background-color:${p.style.bg}">
+                ${p.id}
+              </span>
+              <span class="text-sm font-bold text-white truncate">${p.style.icon} ${p.name}</span>
+            </div>
+            <button type="button" onclick="kickLobbyPlayer('${p.uid}')" class="text-xs text-rose-400 hover:text-rose-300 px-1.5 py-0.5 rounded bg-rose-950/60" title="내보내기">✕</button>
+          `;
+          hostGrid.appendChild(card);
+        });
+      }
+
+      // Player Waiting Lobby UI
+      document.getElementById('joinedLobbyCount').textContent = playersList.length;
+      const playerListEl = document.getElementById('joinedLobbyPlayersList');
+      playerListEl.innerHTML = '';
+      playersList.forEach((p) => {
+        const badge = document.createElement('span');
+        const isMe = p.uid === CLIENT_UID;
+        badge.className = `px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${isMe ? 'ring-2 ring-amber-300 bg-indigo-700 text-white' : 'bg-slate-800 text-slate-200'}`;
+        badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color:${p.style.bg}"></span>${p.name}${isMe ? ' (나)' : ''}`;
+        playerListEl.appendChild(badge);
+      });
+    }
+
+    async function playRemoteDiceRollAnimation(rolled) {
+      state.isAnimating = true;
+      updateAllUI();
+      AudioFX.diceRoll();
+      const diceCube = document.getElementById('diceCube');
+      const randomSpinsX = 720;
+      const randomSpinsY = 720;
+      diceCube.style.transform = `rotateX(${randomSpinsX}deg) rotateY(${randomSpinsY}deg)`;
+      await sleep(300);
+      diceCube.style.transform = `rotateX(360deg) rotateY(360deg) ${diceRotations[rolled]}`;
+      document.getElementById('diceResultLabel').textContent = `${rolled}`;
+      await sleep(450);
+      state.isAnimating = false;
+      updateAllUI();
+    }
+
+    // 8. 초기 설정 화면 렌더링 및 이벤트 바인딩 (한 기기 로컬 플레이)
+    const setupScreen = document.getElementById('setupScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const playerCountDisplay = document.getElementById('playerCountDisplay');
+    const playerInputsGrid = document.getElementById('playerInputsGrid');
+
+    function renderPlayerInputs() {
+      playerCountDisplay.textContent = state.playerCount;
+      const existingValues = Array.from(playerInputsGrid.querySelectorAll('input')).map(inp => inp.value);
+      playerInputsGrid.innerHTML = '';
+
+      for (let i = 0; i < state.playerCount; i++) {
+        const style = PLAYER_STYLES[i % PLAYER_STYLES.length];
+        const savedName = existingValues[i] || `탐험가 ${i + 1}`;
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2.5 bg-slate-800/90 border border-slate-700 rounded-xl p-2 focus-within:border-amber-400 transition';
+        row.innerHTML = `
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-jua text-base shrink-0 shadow" style="background-color: ${style.bg}; border: 2px solid ${style.border}">
+            ${i + 1}
+          </div>
+          <input 
+            type="text" 
+            maxlength="12"
+            data-player-idx="${i}"
+            value="${savedName}" 
+            placeholder="탐험가 ${i + 1}"
+            class="w-full bg-transparent text-sm sm:text-base font-bold text-white focus:outline-none"
+          />
+          <span class="text-base pr-1">${style.icon}</span>
+        `;
+        playerInputsGrid.appendChild(row);
+      }
+    }
+
+    function setPlayerCount(count) {
+      state.playerCount = Math.max(1, Math.min(15, count));
+      renderPlayerInputs();
+    }
+
+    document.getElementById('decreasePlayersBtn').addEventListener('click', () => {
+      setPlayerCount(state.playerCount - 1);
+    });
+
+    document.getElementById('increasePlayersBtn').addEventListener('click', () => {
+      setPlayerCount(state.playerCount + 1);
+    });
+
+    document.getElementById('resetNamesBtn').addEventListener('click', () => {
+      const inputs = playerInputsGrid.querySelectorAll('input');
+      inputs.forEach((inp, idx) => {
+        inp.value = `탐험가 ${idx + 1}`;
+      });
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      const inputs = playerInputsGrid.querySelectorAll('input');
+      state.mode = 'local';
+      state.role = 'local';
+      state.roomCode = null;
+      state.players = Array.from(inputs).map((inp, idx) => {
+        const cleanName = inp.value.trim() || `탐험가 ${idx + 1}`;
+        return {
+          id: idx + 1,
+          uid: `local_${idx + 1}`,
+          name: cleanName,
+          position: 0,
+          prevPosition: 0,
+          skipNext: false,
+          finishedRank: null,
+          style: PLAYER_STYLES[idx % PLAYER_STYLES.length]
+        };
+      });
+
+      state.currentTurnIndex = 0;
+      state.round = 1;
+      state.isAnimating = false;
+      state.finishedCount = 0;
+      state.lastDiceValue = null;
+
+      document.getElementById('liveRoomBadge').classList.add('hidden');
+      setupScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+
+      buildBoardGrid();
+      updateAllUI();
+      logStatus(`🚀 우주 탐험 시작! 첫 번째 차례는 [${state.players[0].name}] 입니다.`);
+    });
+
+    // 6. S자형 보드판 렌더링 (35칸: 7열 x 5행 뱀 모양 배치)
+    // 행 0: 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6
+    // 행 1: 13 <- 12 <- 11 <- 10 <- 9 <- 8 <- 7
+    // 행 2: 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20
+    // 행 3: 27 <- 26 <- 25 <- 24 <- 23 <- 22 <- 21
+    // 행 4: 28 -> 29 -> 30 -> 31 -> 32 -> 33 -> 34(GOAL)
+    function buildBoardGrid() {
+      const boardGrid = document.getElementById('boardGrid');
+      boardGrid.innerHTML = '';
+
+      const cols = 7;
+      const rows = 5;
+      const orderedTiles = [];
+
+      for (let r = 0; r < rows; r++) {
+        const rowSlice = BOARD_TILES.slice(r * cols, (r + 1) * cols);
+        if (r % 2 === 1) {
+          rowSlice.reverse();
+        }
+        orderedTiles.push(...rowSlice);
+      }
+
+      orderedTiles.forEach((tile) => {
+        const tileEl = document.createElement('div');
+        tileEl.id = `tile-card-${tile.index}`;
+        tileEl.className = `board-tile relative rounded-2xl border-2 bg-gradient-to-br ${tile.colorClass} p-2 sm:p-2.5 flex flex-col justify-between min-h-[104px] sm:min-h-[118px] cursor-pointer shadow-md`;
+
+        // Badge for tile type
+        let typeBadge = '';
+        if (tile.type === 'quiz') {
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-200 font-bold">퀴즈</span>`;
+        } else if (tile.type === 'bonus_quiz') {
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-950/90 text-pink-200 font-bold">보너스</span>`;
+        } else if (tile.type === 'move') {
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 font-bold">+${tile.moveSteps}칸</span>`;
+        } else if (tile.type === 'skip') {
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-200 font-bold">쉬기</span>`;
+        } else if (tile.type === 'goal') {
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black">GOAL</span>`;
+        }
+
+        tileEl.innerHTML = `
+          <div class="flex items-center justify-between gap-1">
+            <span class="font-jua text-sm sm:text-base px-2 py-0.5 rounded-lg bg-slate-950/60 text-white leading-none">
+              ${tile.code}
+            </span>
+            <div class="flex items-center gap-1">
+              ${typeBadge}
+              <span class="text-base sm:text-lg leading-none">${tile.icon}</span>
+            </div>
+          </div>
+          <p class="text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-3 my-1 break-keep drop-shadow">
+            ${tile.title}
+          </p>
+          <!-- Player Tokens Container on this tile -->
+          <div id="tile-tokens-${tile.index}" class="flex flex-wrap gap-1 min-h-[22px] items-center pt-0.5"></div>
+        `;
+
+        // Allow teacher/players to click any tile to preview its question/content
+        tileEl.addEventListener('click', () => {
+          openTilePreviewModal(tile);
+        });
+
+        boardGrid.appendChild(tileEl);
+      });
+    }
+
+    // 7. 전체 UI 동기화 (보드 위 말 배치, 사이드바 순위판, 현재 차례 표시)
+    function updateAllUI() {
+      const currentPlayer = state.players[state.currentTurnIndex];
+
+      // 1) Highlight active tile & clear old tokens
+      BOARD_TILES.forEach((t) => {
+        const card = document.getElementById(`tile-card-${t.index}`);
+        const tokenContainer = document.getElementById(`tile-tokens-${t.index}`);
+        if (card) {
+          card.classList.toggle('active-tile', currentPlayer && currentPlayer.position === t.index);
+        }
+        if (tokenContainer) {
+          tokenContainer.innerHTML = '';
+        }
+      });
+
+      // 2) Render each player's token onto their current tile
+      state.players.forEach((p, idx) => {
+        const container = document.getElementById(`tile-tokens-${p.position}`);
+        if (!container) return;
+
+        const isCurrent = idx === state.currentTurnIndex && !p.finishedRank;
+        const isMe = state.mode === 'multiplayer' && p.uid === CLIENT_UID;
+        const token = document.createElement('div');
+        token.className = `player-token w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-jua text-white shadow-md ${isCurrent ? 'current-turn ring-2 ring-yellow-300' : ''} ${isMe ? 'ring-2 ring-white' : ''}`;
+        token.style.backgroundColor = p.style.bg;
+        token.style.border = `2px solid ${p.style.border}`;
+        token.title = `${p.name} (${BOARD_TILES[p.position].code}번 칸)`;
+        token.textContent = p.id;
+        container.appendChild(token);
+      });
+
+      // 3) Update Current Turn Card in Sidebar
+      if (currentPlayer) {
+        const avatar = document.getElementById('currentPlayerAvatar');
+        avatar.style.backgroundColor = currentPlayer.style.bg;
+        avatar.style.border = `2px solid ${currentPlayer.style.border}`;
+        avatar.textContent = currentPlayer.id;
+
+        const isMyTurn = canControlCurrentTurn();
+        const meTag = state.mode === 'multiplayer' && currentPlayer.uid === CLIENT_UID ? ' (내 차례!)' : '';
+        document.getElementById('currentPlayerName').textContent = `${currentPlayer.style.icon} ${currentPlayer.name}${meTag}`;
+        const posTile = BOARD_TILES[currentPlayer.position];
+        document.getElementById('currentPlayerPosText').innerHTML = `현재 위치: <strong>${posTile.code}번 칸</strong> (${posTile.title.slice(0, 14)}${posTile.title.length > 14 ? '...' : ''})`;
+
+        const skipBadge = document.getElementById('currentPlayerSkipBadge');
+        skipBadge.classList.toggle('hidden', !currentPlayer.skipNext);
+      }
+
+      document.getElementById('turnCounterBadge').textContent = `${state.round}라운드 진행 중`;
+      document.getElementById('totalPlayersBadge').textContent = `${state.players.length}명`;
+
+      // 4) Update Scoreboard List
+      const listEl = document.getElementById('playersScoreboardList');
+      listEl.innerHTML = '';
+
+      const canAdjustPos = state.mode === 'local' || state.role === 'host';
+
+      state.players.forEach((p, idx) => {
+        const isCurrent = idx === state.currentTurnIndex && !p.finishedRank;
+        const isMe = state.mode === 'multiplayer' && p.uid === CLIENT_UID;
+        const tileInfo = BOARD_TILES[p.position];
+
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between gap-2 p-2 rounded-xl border transition ${
+          isCurrent
+            ? 'bg-indigo-900/70 border-amber-400 shadow-md'
+            : 'bg-slate-800/70 border-slate-700/70'
+        }`;
+
+        let statusTag = `<span class="text-xs font-bold text-sky-300">${tileInfo.code}칸</span>`;
+        if (p.finishedRank) {
+          statusTag = `<span class="text-xs font-black px-2 py-0.5 rounded bg-amber-400 text-slate-950">🏆 ${p.finishedRank}위 완주</span>`;
+        } else if (p.skipNext) {
+          statusTag = `<span class="text-xs font-bold text-rose-400">⏸️ 쉬기 (${tileInfo.code}칸)</span>`;
+        }
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white font-jua text-xs shrink-0" style="background-color: ${p.style.bg}; border: 1.5px solid ${p.style.border}">
+              ${p.id}
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs sm:text-sm font-bold text-white truncate flex items-center gap-1">
+                <span>${p.name}</span>
+                ${isMe ? '<span class="text-[10px] px-1.5 rounded bg-sky-500/30 text-sky-200">나</span>' : ''}
+                ${isCurrent ? '<span class="text-[10px] text-amber-300">◀ 차례</span>' : ''}
+              </div>
+              <div>${statusTag}</div>
+            </div>
+          </div>
+
+          <!-- Teacher / Host Quick Manual Position Adjustment -->
+          ${canAdjustPos ? `
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="adjustPlayerPosition(${idx}, -1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-xs font-bold text-slate-200" title="1칸 뒤로">-1</button>
+            <button type="button" onclick="adjustPlayerPosition(${idx}, 1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-xs font-bold text-slate-200" title="1칸 앞으로">+1</button>
+          </div>` : ''}
+        `;
+        listEl.appendChild(item);
+      });
+
+      // Enable/disable roll button based on turn permission
+      const rollBtn = document.getElementById('rollDiceBtn');
+      const permHint = document.getElementById('turnPermissionHint');
+      const allowed = canControlCurrentTurn();
+      rollBtn.disabled = state.isAnimating || !allowed;
+
+      if (state.mode === 'multiplayer' && !allowed && currentPlayer) {
+        permHint.textContent = `⏳ [${currentPlayer.name}] 탐험가의 차례입니다.`;
+        permHint.classList.remove('hidden');
+      } else {
+        permHint.classList.add('hidden');
+      }
+    }
+
+    function canControlCurrentTurn() {
+      if (state.mode === 'local') return true;
+      if (state.role === 'host') return true; // Host can always assist/control if needed
+      const currentPlayer = state.players[state.currentTurnIndex];
+      return currentPlayer && currentPlayer.uid === CLIENT_UID;
+    }
+
+    // Teacher / Host manual position override helper
+    window.adjustPlayerPosition = async function (playerIdx, delta) {
+      if (state.isAnimating) return;
+      if (state.mode === 'multiplayer' && state.role !== 'host') return;
+      const p = state.players[playerIdx];
+      if (!p) return;
+      const newPos = Math.max(0, Math.min(BOARD_TILES.length - 1, p.position + delta));
+      p.position = newPos;
+      if (newPos === BOARD_TILES.length - 1 && !p.finishedRank) {
+        state.finishedCount += 1;
+        p.finishedRank = state.finishedCount;
+      }
+      const msg = `🔧 [${p.name}] 위치를 ${BOARD_TILES[newPos].code}번 칸으로 조정했습니다.`;
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          [`players.${p.uid}.position`]: p.position,
+          [`players.${p.uid}.finishedRank`]: p.finishedRank || null,
+          statusLog: msg
+        });
+      } else {
+        updateAllUI();
+        logStatus(msg);
+      }
+    };
+
+    function logStatus(msg) {
+      state.statusLog = msg;
+      document.getElementById('statusLogText').textContent = msg;
+    }
+
+    // 8. 3D 주사위 굴리기 및 단계별 이동 애니메이션
+    const diceRotations = {
+      1: 'rotateX(0deg) rotateY(0deg)',
+      2: 'rotateX(0deg) rotateY(-90deg)',
+      3: 'rotateX(-90deg) rotateY(0deg)',
+      4: 'rotateX(90deg) rotateY(0deg)',
+      5: 'rotateX(0deg) rotateY(90deg)',
+      6: 'rotateX(0deg) rotateY(180deg)'
+    };
+
+    async function handleRollDice() {
+      if (state.isAnimating) return;
+      if (!canControlCurrentTurn()) return;
+      const player = state.players[state.currentTurnIndex];
+      if (!player) return;
+
+      // Check if player has "한 번 쉬기" penalty
+      if (player.skipNext) {
+        player.skipNext = false;
+        AudioFX.wrong();
+        const skipMsg = `⏸️ [${player.name}] 탐험가는 지난 턴 우주 이벤트로 인해 이번 차례를 쉽니다.`;
+        if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+          await updateDoc(getRoomDocRef(state.roomCode), {
+            [`players.${player.uid}.skipNext`]: false,
+            statusLog: skipMsg
+          });
+          await advanceTurn();
+        } else {
+          showQuickNoticeModal(
+            '⏸️ 한 번 쉬기 차례!',
+            skipMsg,
+            () => {
+              advanceTurn();
+            }
+          );
+        }
+        return;
+      }
+
+      state.isAnimating = true;
+      updateAllUI();
+      AudioFX.diceRoll();
+
+      // Save previous position before moving (Rule 2: 틀리면 원래 자리로 복귀)
+      player.prevPosition = player.position;
+
+      // Random 1-6 roll with 3D spin
+      const rolled = Math.floor(Math.random() * 6) + 1;
+      state.lastDiceValue = rolled;
+
+      const rollEventId = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      lastProcessedRollId = rollEventId;
+
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          diceValue: rolled,
+          rollEvent: { id: rollEventId, rolled, byUid: player.uid },
+          statusLog: `🎲 [${player.name}] 주사위 ${rolled} 굴림!`
+        });
+      }
+
+      const diceCube = document.getElementById('diceCube');
+      const randomSpinsX = (Math.floor(Math.random() * 2) + 2) * 360;
+      const randomSpinsY = (Math.floor(Math.random() * 2) + 2) * 360;
+      diceCube.style.transform = `rotateX(${randomSpinsX}deg) rotateY(${randomSpinsY}deg)`;
+
+      await sleep(320);
+      // Settle on exact face rotation
+      const targetRot = diceRotations[rolled];
+      diceCube.style.transform = `rotateX(360deg) rotateY(360deg) ${targetRot}`;
+      document.getElementById('diceResultLabel').textContent = `${rolled}`;
+
+      await sleep(620);
+
+      // Step-by-step movement
+      const targetPos = Math.min(BOARD_TILES.length - 1, player.position + rolled);
+      const moveLog = `🎲 [${player.name}] 주사위 ${rolled}! ${BOARD_TILES[targetPos].code}번 칸으로 이동 완료!`;
+      logStatus(moveLog);
+
+      await animatePlayerMove(player, targetPos);
+
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          [`players.${player.uid}.position`]: player.position,
+          [`players.${player.uid}.prevPosition`]: player.prevPosition,
+          statusLog: moveLog,
+          activeEvent: {
+            tileIndex: player.position,
+            playerUid: player.uid
+          }
+        });
+      }
+
+      // Trigger tile landing event
+      onPlayerLanded(player);
+    }
+
+    async function animatePlayerMove(player, targetPos) {
+      const stepDir = targetPos >= player.position ? 1 : -1;
+      while (player.position !== targetPos) {
+        player.position += stepDir;
+        AudioFX.step();
+        updateAllUI();
+        await sleep(220);
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    document.getElementById('rollDiceBtn').addEventListener('click', handleRollDice);
+    document.getElementById('diceClickArea').addEventListener('click', handleRollDice);
+
+    // 9. 칸 도착 시 이벤트 처리 및 모달 표시
+    function onPlayerLanded(player) {
+      const tile = BOARD_TILES[player.position];
+
+      // Check GOAL immediately
+      if (tile.type === 'goal') {
+        handlePlayerReachedGoal(player);
+        return;
+      }
+
+      openTileEventModal(player, tile);
+    }
+
+    function openTileEventModal(player, tile) {
+      const modal = document.getElementById('tileModal');
+      const headerBg = document.getElementById('modalHeaderBg');
+      const tileBadge = document.getElementById('modalTileBadge');
+      const typeTag = document.getElementById('modalTypeTag');
+      const playerChip = document.getElementById('modalPlayerChip');
+      const modalIcon = document.getElementById('modalIcon');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalSubDesc = document.getElementById('modalSubDesc');
+      const answerSection = document.getElementById('answerSection');
+      const answerBox = document.getElementById('answerBox');
+      const modalAnswerText = document.getElementById('modalAnswerText');
+      const modalActions = document.getElementById('modalActions');
+
+      tileBadge.textContent = `${tile.code}번 칸`;
+      playerChip.innerHTML = `<span>${player.style.icon} ${player.name}</span>`;
+      modalIcon.textContent = tile.icon;
+      modalTitle.textContent = tile.title;
+      modalSubDesc.textContent = tile.text;
+      answerBox.classList.add('hidden');
+      modalActions.innerHTML = '';
+
+      const canAct = state.mode === 'local' || state.role === 'host' || player.uid === CLIENT_UID;
+
+      if (tile.type === 'quiz' || tile.type === 'bonus_quiz') {
+        headerBg.className = 'px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-between';
+        typeTag.textContent = tile.type === 'bonus_quiz' ? '🎁 보너스 퀴즈' : '❓ 우주 퀴즈 / 미션';
+        answerSection.classList.remove('hidden');
+        modalAnswerText.textContent = tile.answer;
+
+        if (!canAct) {
+          modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-amber-300">⏳ [${player.name}] 탐험가가 퀴즈에 답하고 있습니다...</div>`;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          return;
+        }
+
+        // Correct Button
+        const correctBtn = document.createElement('button');
+        correctBtn.type = 'button';
+        correctBtn.className = 'flex-1 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-jua text-lg sm:text-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition cursor-pointer';
+        correctBtn.textContent = tile.type === 'bonus_quiz'
+          ? '⭕ 정답! (+3칸 앞으로)'
+          : '⭕ 정답 (자리 유지)';
+
+        correctBtn.addEventListener('click', async () => {
+          closeTileModal();
+          AudioFX.correct();
+          let resultLog = `⭕ [${player.name}] 퀴즈 정답! ${tile.code}번 칸에 안착했습니다.`;
+          if (tile.type === 'bonus_quiz') {
+            resultLog = `🎉 [${player.name}] 보너스 퀴즈 정답! 3칸 앞으로 전진합니다!`;
+            logStatus(resultLog);
+            const nextPos = Math.min(BOARD_TILES.length - 1, player.position + 3);
+            await animatePlayerMove(player, nextPos);
+            if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+              await updateDoc(getRoomDocRef(state.roomCode), {
+                [`players.${player.uid}.position`]: player.position
+              });
+            }
+            if (BOARD_TILES[player.position].type === 'goal') {
+              await syncClearActiveEvent(resultLog);
+              handlePlayerReachedGoal(player);
+              return;
+            }
+          } else {
+            logStatus(resultLog);
+          }
+          await syncClearActiveEvent(resultLog);
+          await advanceTurn();
+        });
+
+        // Wrong Button
+        const wrongBtn = document.createElement('button');
+        wrongBtn.type = 'button';
+        wrongBtn.className = 'flex-1 py-3.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-jua text-lg sm:text-xl shadow-lg shadow-rose-600/25 active:scale-95 transition cursor-pointer';
+        wrongBtn.textContent = tile.type === 'bonus_quiz'
+          ? '❌ 오답 (12번 자리 유지)'
+          : `❌ 오답 (원래 자리 ${BOARD_TILES[player.prevPosition].code}칸으로)`;
+
+        wrongBtn.addEventListener('click', async () => {
+          closeTileModal();
+          AudioFX.wrong();
+          let resultLog = '';
+          if (tile.type === 'bonus_quiz') {
+            resultLog = `😅 [${player.name}] 보너스 퀴즈 오답! 아쉽지만 12번 칸에 머무릅니다.`;
+            logStatus(resultLog);
+          } else {
+            resultLog = `❌ [${player.name}] 오답! 규칙에 따라 원래 자리(${BOARD_TILES[player.prevPosition].code}번 칸)로 돌아갑니다.`;
+            logStatus(resultLog);
+            await animatePlayerMove(player, player.prevPosition);
+            if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+              await updateDoc(getRoomDocRef(state.roomCode), {
+                [`players.${player.uid}.position`]: player.position
+              });
+            }
+          }
+          await syncClearActiveEvent(resultLog);
+          await advanceTurn();
+        });
+
+        modalActions.appendChild(correctBtn);
+        modalActions.appendChild(wrongBtn);
+
+      } else if (tile.type === 'move') {
+        headerBg.className = 'px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-between';
+        typeTag.textContent = `🚀 보너스 이동 (+${tile.moveSteps}칸)`;
+        answerSection.classList.add('hidden');
+        AudioFX.boost();
+
+        if (!canAct) {
+          modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-emerald-300">⚡ [${player.name}] 탐험가가 보너스 이동 중입니다...</div>`;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          return;
+        }
+
+        const moveBtn = document.createElement('button');
+        moveBtn.type = 'button';
+        moveBtn.className = 'w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-jua text-xl shadow-lg active:scale-95 transition cursor-pointer';
+        moveBtn.textContent = `⚡ ${tile.moveSteps}칸 앞으로 이동하기!`;
+
+        moveBtn.addEventListener('click', async () => {
+          closeTileModal();
+          const nextPos = Math.min(BOARD_TILES.length - 1, player.position + tile.moveSteps);
+          const moveMsg = `⚡ [${player.name}] 효과 발동! ${tile.moveSteps}칸 앞으로 이동합니다.`;
+          logStatus(moveMsg);
+          await animatePlayerMove(player, nextPos);
+          if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+            await updateDoc(getRoomDocRef(state.roomCode), {
+              [`players.${player.uid}.position`]: player.position
+            });
+          }
+          // Check if the new tile is GOAL or another special tile
+          const landedTile = BOARD_TILES[player.position];
+          if (landedTile.type === 'goal') {
+            await syncClearActiveEvent(moveMsg);
+            handlePlayerReachedGoal(player);
+          } else if (landedTile.type === 'quiz' || landedTile.type === 'skip' || landedTile.type === 'move') {
+            if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+              await updateDoc(getRoomDocRef(state.roomCode), {
+                statusLog: moveMsg,
+                activeEvent: { tileIndex: player.position, playerUid: player.uid }
+              });
+            }
+            openTileEventModal(player, landedTile);
+          } else {
+            await syncClearActiveEvent(moveMsg);
+            await advanceTurn();
+          }
+        });
+
+        modalActions.appendChild(moveBtn);
+
+      } else if (tile.type === 'skip') {
+        headerBg.className = 'px-6 py-4 bg-gradient-to-r from-rose-600 to-red-700 flex items-center justify-between';
+        typeTag.textContent = '⏸️ 페널티 (한 번 쉬기)';
+        answerSection.classList.add('hidden');
+        AudioFX.wrong();
+        player.skipNext = true;
+
+        if (!canAct) {
+          modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-rose-300">⏸️ [${player.name}] 탐험가 확인 대기 중...</div>`;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          return;
+        }
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'w-full py-3.5 px-4 rounded-2xl bg-slate-200 hover:bg-white text-slate-950 font-jua text-xl shadow-lg active:scale-95 transition cursor-pointer';
+        okBtn.textContent = '확인 (다음 차례 한 번 쉬기)';
+
+        okBtn.addEventListener('click', async () => {
+          closeTileModal();
+          const skipLog = `⏸️ [${player.name}] 다음 차례 한 번 쉬기가 적용되었습니다.`;
+          logStatus(skipLog);
+          if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+            await updateDoc(getRoomDocRef(state.roomCode), {
+              [`players.${player.uid}.skipNext`]: true
+            });
+          }
+          await syncClearActiveEvent(skipLog);
+          await advanceTurn();
+        });
+
+        modalActions.appendChild(okBtn);
+
+      } else {
+        // Safe / Info / Start tile
+        headerBg.className = 'px-6 py-4 bg-gradient-to-r from-sky-600 to-blue-700 flex items-center justify-between';
+        typeTag.textContent = '✨ 탐사 안전 지대';
+        answerSection.classList.add('hidden');
+        AudioFX.correct();
+
+        if (!canAct) {
+          modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-sky-300">✨ [${player.name}] 탐험가 확인 대기 중...</div>`;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          return;
+        }
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'w-full py-3.5 px-4 rounded-2xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-jua text-xl shadow-lg active:scale-95 transition cursor-pointer';
+        okBtn.textContent = '확인 (다음 사람 차례로)';
+
+        okBtn.addEventListener('click', async () => {
+          closeTileModal();
+          const safeLog = `✅ [${player.name}] ${tile.code}번 칸 탐사 완료!`;
+          logStatus(safeLog);
+          await syncClearActiveEvent(safeLog);
+          await advanceTurn();
+        });
+
+        modalActions.appendChild(okBtn);
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    async function syncClearActiveEvent(newStatusLog) {
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          activeEvent: null,
+          statusLog: newStatusLog || state.statusLog
+        });
+      }
+    }
+
+    // Preview modal when clicking any board tile manually
+    function openTilePreviewModal(tile) {
+      if (state.isAnimating) return;
+      const modal = document.getElementById('tileModal');
+      const headerBg = document.getElementById('modalHeaderBg');
+      const tileBadge = document.getElementById('modalTileBadge');
+      const typeTag = document.getElementById('modalTypeTag');
+      const playerChip = document.getElementById('modalPlayerChip');
+      const modalIcon = document.getElementById('modalIcon');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalSubDesc = document.getElementById('modalSubDesc');
+      const answerSection = document.getElementById('answerSection');
+      const answerBox = document.getElementById('answerBox');
+      const modalAnswerText = document.getElementById('modalAnswerText');
+      const modalActions = document.getElementById('modalActions');
+
+      headerBg.className = 'px-6 py-4 bg-gradient-to-r from-slate-700 to-slate-800 flex items-center justify-between';
+      tileBadge.textContent = `${tile.code}번 칸`;
+      typeTag.textContent = '🔍 칸 미리보기';
+      playerChip.innerHTML = `<span>보드판 확인 모드</span>`;
+      modalIcon.textContent = tile.icon;
+      modalTitle.textContent = tile.title;
+      modalSubDesc.textContent = tile.text;
+      answerBox.classList.add('hidden');
+
+      if (tile.answer) {
+        answerSection.classList.remove('hidden');
+        modalAnswerText.textContent = tile.answer;
+      } else {
+        answerSection.classList.add('hidden');
+      }
+
+      modalActions.innerHTML = '';
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'w-full py-3 px-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-jua text-lg transition cursor-pointer';
+      closeBtn.textContent = '닫기';
+      closeBtn.addEventListener('click', closeTileModal);
+      modalActions.appendChild(closeBtn);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeTileModal() {
+      const modal = document.getElementById('tileModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    document.getElementById('toggleAnswerBtn').addEventListener('click', () => {
+      document.getElementById('answerBox').classList.toggle('hidden');
+    });
+
+    // 10. 다음 플레이어로 턴 넘기기
+    async function advanceTurn() {
+      const activePlayers = state.players.filter((p) => !p.finishedRank);
+      if (activePlayers.length === 0) {
+        state.isAnimating = false;
+        updateAllUI();
+        showLeaderboardModal(true);
+        return;
+      }
+
+      let nextIdx = (state.currentTurnIndex + 1) % state.players.length;
+      let nextRound = state.round;
+      if (nextIdx <= state.currentTurnIndex) {
+        nextRound += 1;
+      }
+
+      // Skip already-finished players so remaining players can compete for 2nd/3rd place
+      let safety = 0;
+      while (state.players[nextIdx].finishedRank && safety < state.players.length) {
+        nextIdx = (nextIdx + 1) % state.players.length;
+        if (nextIdx === 0) nextRound += 1;
+        safety++;
+      }
+
+      state.currentTurnIndex = nextIdx;
+      state.round = nextRound;
+      state.isAnimating = false;
+      const nextLog = `👉 다음 차례는 [${state.players[state.currentTurnIndex].name}] 입니다. 주사위를 굴려주세요!`;
+
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          currentTurnIndex: nextIdx,
+          round: nextRound,
+          activeEvent: null,
+          statusLog: nextLog
+        });
+      } else {
+        updateAllUI();
+        logStatus(nextLog);
+      }
+    }
+
+    // 11. 해왕성(GOAL) 도착 및 우승 축하 처리
+    async function handlePlayerReachedGoal(player, fromRemoteSync = false) {
+      if (!player.finishedRank) {
+        state.finishedCount += 1;
+        player.finishedRank = state.finishedCount;
+        if (!fromRemoteSync && state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+          await updateDoc(getRoomDocRef(state.roomCode), {
+            [`players.${player.uid}.position`]: BOARD_TILES.length - 1,
+            [`players.${player.uid}.finishedRank`]: player.finishedRank
+          });
+        }
+      }
+      state.isAnimating = false;
+      updateAllUI();
+      AudioFX.victory();
+
+      const isFirstWinner = player.finishedRank === 1;
+      const title = isFirstWinner
+        ? `🎉 우주 탐험 최종 우승! (${player.name})`
+        : `🏅 ${player.finishedRank}위 해왕성 도착! (${player.name})`;
+
+      const bodyHtml = `
+        <div class="text-center py-2">
+          <div class="text-6xl mb-3">🏆🪐🚀</div>
+          <p class="font-jua text-2xl text-amber-300 mb-2">
+            [${player.name}] 해왕성 도착!
+          </p>
+          <p class="text-sm text-slate-300 mb-4">
+            최종 목적지 해왕성에 <strong>${player.finishedRank}등</strong>으로 도착하여 우주 탐험에 성공했습니다!
+          </p>
+          ${buildRankingTableHTML()}
+        </div>
+      `;
+
+      const canContinue = state.mode === 'local' || state.role === 'host' || player.uid === CLIENT_UID;
+      openInfoModal(
+        title,
+        bodyHtml,
+        state.finishedCount < state.players.length
+          ? (canContinue ? '계속 진행 (다음 순위 결정)' : '닫기')
+          : '확인',
+        async () => {
+          closeInfoModal();
+          if (state.finishedCount < state.players.length && canContinue) {
+            await syncClearActiveEvent(`🏅 [${player.name}] ${player.finishedRank}위 해왕성 도착 완료!`);
+            await advanceTurn();
+          }
+        }
+      );
+    }
+
+    // 12. 순위표 / 게임 규칙 / 알림 모달 헬퍼
+    function buildRankingTableHTML() {
+      const sorted = [...state.players].sort((a, b) => {
+        if (a.finishedRank && b.finishedRank) return a.finishedRank - b.finishedRank;
+        if (a.finishedRank) return -1;
+        if (b.finishedRank) return 1;
+        return b.position - a.position;
+      });
+
+      return `
+        <div class="space-y-2 text-left mt-3">
+          ${sorted.map((p, idx) => {
+            const tile = BOARD_TILES[p.position];
+            const rankLabel = p.finishedRank ? `🏆 ${p.finishedRank}위` : `${idx + 1}위`;
+            return `
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="flex items-center gap-2.5">
+                  <span class="font-jua text-base w-12 text-amber-300">${rankLabel}</span>
+                  <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white font-jua text-xs" style="background-color:${p.style.bg}">
+                    ${p.id}
+                  </span>
+                  <span class="font-bold text-sm text-white">${p.name}</span>
+                </div>
+                <span class="text-xs font-bold text-sky-300">${tile.code}번 칸</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function showLeaderboardModal() {
+      openInfoModal('🏆 실시간 탐험 순위표', buildRankingTableHTML(), '닫기', closeInfoModal);
+    }
+
+    function showQuickNoticeModal(title, message, onConfirm) {
+      const html = `
+        <div class="text-center py-4">
+          <div class="text-5xl mb-3">⏸️</div>
+          <p class="text-base sm:text-lg text-slate-200 font-bold break-keep">${message}</p>
+        </div>
+      `;
+      openInfoModal(title, html, '다음 차례로 넘기기', () => {
+        closeInfoModal();
+        if (onConfirm) onConfirm();
+      });
+    }
+
+    let currentInfoConfirmCallback = null;
+    function openInfoModal(title, bodyHtml, btnText = '닫기', onConfirm = closeInfoModal) {
+      document.getElementById('infoModalTitle').textContent = title;
+      document.getElementById('infoModalBody').innerHTML = bodyHtml;
+      const confirmBtn = document.getElementById('infoModalConfirmBtn');
+      confirmBtn.textContent = btnText;
+      currentInfoConfirmCallback = onConfirm;
+
+      const modal = document.getElementById('infoModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeInfoModal() {
+      const modal = document.getElementById('infoModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    document.getElementById('closeInfoModalBtn').addEventListener('click', () => {
+      if (currentInfoConfirmCallback) currentInfoConfirmCallback();
+      else closeInfoModal();
+    });
+
+    document.getElementById('infoModalConfirmBtn').addEventListener('click', () => {
+      if (currentInfoConfirmCallback) currentInfoConfirmCallback();
+      else closeInfoModal();
+    });
+
+    // Header Bar Buttons
+    document.getElementById('rulesModalBtn').addEventListener('click', () => {
+      const rulesHtml = `
+        <div class="space-y-3 text-sm sm:text-base text-slate-200">
+          <div class="p-3.5 rounded-2xl bg-slate-800 border border-slate-700">
+            <p class="font-bold text-amber-300 mb-1">1. 주사위 굴리기 및 이동</p>
+            <p class="text-slate-300">자기 차례에 주사위를 굴려 나온 눈의 수만큼 우주선 말을 앞으로 이동합니다.</p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-slate-800 border border-slate-700">
+            <p class="font-bold text-purple-300 mb-1">2. 칸에 적힌 문제 및 이벤트 수행</p>
+            <ul class="list-disc list-inside text-slate-300 space-y-1">
+              <li><strong class="text-emerald-300">정답 시:</strong> 그 자리에 머무르며 보너스 효과를 수행합니다.</li>
+              <li><strong class="text-rose-400">오답 시:</strong> 주사위를 굴리기 전 원래 자리로 돌아갑니다. (단, 12번 보너스 퀴즈는 오답 시 12번 칸 유지)</li>
+            </ul>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-slate-800 border border-slate-700">
+            <p class="font-bold text-sky-300 mb-1">3. 최종 우승 조건</p>
+            <p class="text-slate-300">가장 먼저 최종 목적지인 <strong>해왕성(GOAL)</strong>에 도착한 탐험가가 승리합니다!</p>
+          </div>
+        </div>
+      `;
+      openInfoModal('📜 우주 탐험 보드게임 규칙', rulesHtml, '확인', closeInfoModal);
+    });
+
+    document.getElementById('leaderboardBtn').addEventListener('click', showLeaderboardModal);
+
+    document.getElementById('soundToggleBtn').addEventListener('click', (e) => {
+      state.soundEnabled = !state.soundEnabled;
+      e.target.textContent = state.soundEnabled ? '🔊 효과음' : '🔇 음소거';
+    });
+
+    document.getElementById('backToSetupBtn').addEventListener('click', () => {
+      const isHost = state.mode === 'multiplayer' && state.role === 'host';
+      const confirmHtml = `
+        <div class="text-center py-3">
+          <p class="text-base text-slate-200 font-bold mb-2">로비/설정 화면으로 돌아가시겠습니까?</p>
+          <p class="text-xs text-slate-400">${isHost ? '호스트가 나가면 현재 멀티플레이 방이 종료됩니다.' : '현재 화면에서 나갑니다.'}</p>
+        </div>
+      `;
+      openInfoModal('⚙️ 로비 이동 확인', confirmHtml, '네, 이동하기', async () => {
+        closeInfoModal();
+        if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+          try {
+            if (state.role === 'host') {
+              await deleteDoc(getRoomDocRef(state.roomCode));
+            } else {
+              const roomRef = getRoomDocRef(state.roomCode);
+              const snap = await getDoc(roomRef);
+              if (snap.exists()) {
+                const updatedPlayers = { ...(snap.data().players || {}) };
+                delete updatedPlayers[CLIENT_UID];
+                await updateDoc(roomRef, { players: updatedPlayers });
+              }
+            }
+          } catch (e) {}
+          detachRoomListener();
+        }
+        state.mode = 'local';
+        state.role = 'local';
+        state.roomCode = null;
+        document.getElementById('playerWaitingLobby').classList.add('hidden');
+        document.getElementById('hostLobbyBox').classList.add('hidden');
+        document.getElementById('hostCreateBox').classList.remove('hidden');
+        gameScreen.classList.add('hidden');
+        setupScreen.classList.remove('hidden');
+      });
+    });
+
+    // Initialize setup screen and built-in Firebase connection on load
+    renderPlayerInputs();
+    initBuiltInFirebase();
+  </script>
+</body>
+</html>
