@@ -435,7 +435,7 @@
             <span class="text-base">📡</span>
             <span id="statusLogText" class="text-slate-200 font-medium">탐험 준비 완료! 현재 차례 탐험가가 주사위를 굴려주세요.</span>
           </div>
-          <span class="text-[11px] text-slate-400 hidden sm:inline">칸을 클릭하면 해당 칸의 문제를 미리 볼 수 있습니다.</span>
+          <span class="text-[11px] text-slate-400 hidden sm:inline">퀴즈 칸은 탐험가가 도착해야 문제가 공개됩니다.</span>
         </div>
       </main>
 
@@ -1683,9 +1683,9 @@
         // Badge for tile type
         let typeBadge = '';
         if (tile.type === 'quiz') {
-          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-200 font-bold">퀴즈</span>`;
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-200 font-bold">비밀 퀴즈</span>`;
         } else if (tile.type === 'bonus_quiz') {
-          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-950/90 text-pink-200 font-bold">보너스</span>`;
+          typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-pink-950/90 text-pink-200 font-bold">비밀 보너스</span>`;
         } else if (tile.type === 'move') {
           typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 font-bold">+${tile.moveSteps}칸</span>`;
         } else if (tile.type === 'skip') {
@@ -1694,6 +1694,11 @@
           typeBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black">GOAL</span>`;
         }
 
+        const isHiddenQuiz = tile.type === 'quiz' || tile.type === 'bonus_quiz';
+        const initialTitleHTML = isHiddenQuiz
+          ? `<span class="text-amber-200/90">🔒 비밀 ${tile.type === 'bonus_quiz' ? '보너스 퀴즈' : '우주 퀴즈'}</span><br/><span class="text-[10px] font-normal text-slate-300">도착 시 문제 공개</span>`
+          : tile.title;
+
         tileEl.innerHTML = `
           <div class="flex items-center justify-between gap-1">
             <span class="font-jua text-sm sm:text-base px-2 py-0.5 rounded-lg bg-slate-950/60 text-white leading-none">
@@ -1701,11 +1706,11 @@
             </span>
             <div class="flex items-center gap-1">
               ${typeBadge}
-              <span class="text-base sm:text-lg leading-none">${tile.icon}</span>
+              <span id="tile-icon-${tile.index}" class="text-base sm:text-lg leading-none">${isHiddenQuiz ? '🔒' : tile.icon}</span>
             </div>
           </div>
-          <p class="text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-3 my-1 break-keep drop-shadow">
-            ${tile.title}
+          <p id="tile-title-${tile.index}" class="text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-3 my-1 break-keep drop-shadow">
+            ${initialTitleHTML}
           </p>
           <!-- Player Tokens Container on this tile -->
           <div id="tile-tokens-${tile.index}" class="flex flex-wrap gap-1 min-h-[22px] items-center pt-0.5"></div>
@@ -1724,12 +1729,25 @@
     function updateAllUI() {
       const currentPlayer = state.players[state.currentTurnIndex];
 
-      // 1) Highlight active tile & clear old tokens
+      // 1) Highlight active tile & clear old tokens & reveal visited quiz tiles
       BOARD_TILES.forEach((t) => {
         const card = document.getElementById(`tile-card-${t.index}`);
         const tokenContainer = document.getElementById(`tile-tokens-${t.index}`);
+        const titleEl = document.getElementById(`tile-title-${t.index}`);
+        const iconEl = document.getElementById(`tile-icon-${t.index}`);
+        const isOccupied = state.players.some((p) => p.position === t.index);
+
         if (card) {
           card.classList.toggle('active-tile', currentPlayer && currentPlayer.position === t.index);
+        }
+        if ((t.type === 'quiz' || t.type === 'bonus_quiz') && titleEl && iconEl) {
+          if (isOccupied) {
+            titleEl.textContent = t.title;
+            iconEl.textContent = t.icon;
+          } else {
+            titleEl.innerHTML = `<span class="text-amber-200/90">🔒 비밀 ${t.type === 'bonus_quiz' ? '보너스 퀴즈' : '우주 퀴즈'}</span><br/><span class="text-[10px] font-normal text-slate-300">도착 시 문제 공개</span>`;
+            iconEl.textContent = '🔒';
+          }
         }
         if (tokenContainer) {
           tokenContainer.innerHTML = '';
@@ -2269,14 +2287,18 @@
 
     async function syncClearActiveEvent(newStatusLog) {
       if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
-        await updateDoc(getRoomDocRef(state.roomCode), {
-          activeEvent: null,
-          statusLog: newStatusLog || state.statusLog
-        });
+        try {
+          await updateDoc(getRoomDocRef(state.roomCode), {
+            activeEvent: null,
+            statusLog: newStatusLog || state.statusLog
+          });
+        } catch (err) {
+          console.error('Failed to clear activeEvent:', err);
+        }
       }
     }
 
-    // Preview modal when clicking any board tile manually (No hints shown to students!)
+    // Preview modal when clicking any board tile manually (Locked for students until landed!)
     function openTilePreviewModal(tile) {
       if (state.isAnimating) return;
       const modal = document.getElementById('tileModal');
@@ -2295,19 +2317,27 @@
       const modalAnswerText = document.getElementById('modalAnswerText');
       const modalActions = document.getElementById('modalActions');
 
+      const isHostOrLocal = state.mode === 'local' || state.role === 'host';
+      const isQuizTile = tile.type === 'quiz' || tile.type === 'bonus_quiz';
+      const isOccupied = state.players.some((p) => p.position === tile.index);
+      const canSeeQuizContent = !isQuizTile || isHostOrLocal || isOccupied;
+
       headerBg.className = 'px-6 py-4 bg-gradient-to-r from-slate-700 to-slate-800 flex items-center justify-between';
       tileBadge.textContent = `${tile.code}번 칸`;
-      typeTag.textContent = '🔍 칸 미리보기';
+      typeTag.textContent = canSeeQuizContent ? '🔍 칸 미리보기' : '🔒 비공개 퀴즈 칸';
       playerChip.innerHTML = `<span>보드판 확인 모드</span>`;
-      modalIcon.textContent = tile.icon;
-      modalTitle.textContent = tile.title;
-      modalSubDesc.textContent = tile.text;
+      modalIcon.textContent = canSeeQuizContent ? tile.icon : '🔒';
+      modalTitle.textContent = canSeeQuizContent
+        ? tile.title
+        : `비밀 ${tile.type === 'bonus_quiz' ? '보너스 퀴즈' : '우주 퀴즈'} 칸`;
+      modalSubDesc.textContent = canSeeQuizContent
+        ? tile.text
+        : '주사위를 굴려 이 칸에 실제로 도착해야 문제가 공개됩니다!';
 
       submittedAnswerCard.classList.add('hidden');
       studentInputSection.classList.add('hidden');
       answerBox.classList.add('hidden');
 
-      const isHostOrLocal = state.mode === 'local' || state.role === 'host';
       if (tile.answer && isHostOrLocal) {
         answerSection.classList.remove('hidden');
         hostAnswerControl.classList.remove('hidden');
