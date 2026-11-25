@@ -574,12 +574,32 @@
 
         <!-- Answer Reveal Box (For Quiz / Mission Tiles) -->
         <div id="answerSection" class="mb-6">
-          <button type="button" id="toggleAnswerBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-indigo-400/40 text-indigo-300 font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer">
-            <span>💡 정답 / 해설 보기</span>
-          </button>
-          <div id="answerBox" class="hidden mt-3 p-4 rounded-2xl bg-indigo-950/80 border border-indigo-400/40 text-center">
-            <p class="text-xs text-indigo-300 font-bold mb-1">정답 및 해설</p>
-            <p id="modalAnswerText" class="text-lg sm:text-xl font-bold text-amber-300 break-keep">
+          <!-- Student Submitted Answer Display (Visible to Host & All) -->
+          <div id="submittedAnswerCard" class="hidden mb-3 p-4 rounded-2xl bg-sky-950/80 border border-sky-400/50 text-center">
+            <p class="text-xs text-sky-300 font-bold mb-1">👨‍🚀 탐험가 제출 답변</p>
+            <p id="submittedAnswerText" class="text-lg sm:text-xl font-bold text-white break-keep"></p>
+          </div>
+
+          <!-- Student Answer Input Box (Visible only to active student) -->
+          <div id="studentInputSection" class="hidden space-y-2.5">
+            <label class="block text-xs font-bold text-amber-300 text-left">✍️ 나의 정답 또는 생각을 입력하세요 (힌트 비공개)</label>
+            <input type="text" id="studentAnswerInput" maxlength="80" placeholder="여기에 답변을 입력한 뒤 제출하세요..."
+              class="w-full px-4 py-3 rounded-xl bg-slate-950 border-2 border-indigo-400/60 focus:border-amber-400 text-white font-bold text-base focus:outline-none" />
+            <button type="button" id="submitStudentAnswerBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-sky-400 to-indigo-500 hover:from-sky-300 hover:to-indigo-400 text-slate-950 font-jua text-lg shadow-lg active:scale-95 transition cursor-pointer">
+              📨 답변 제출하기 (강사 확인 요청)
+            </button>
+          </div>
+
+          <!-- Host / Instructor Only Answer Reveal -->
+          <div id="hostAnswerControl" class="hidden">
+            <button type="button" id="toggleAnswerBtn" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-400/50 text-amber-300 font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer">
+              <span>👑 [강사 전용] 정답 공개하기</span>
+            </button>
+          </div>
+
+          <div id="answerBox" class="hidden mt-3 p-4 rounded-2xl bg-indigo-950/90 border-2 border-amber-400/60 text-center">
+            <p class="text-xs text-amber-300 font-bold mb-1">💡 공개된 정답 및 해설</p>
+            <p id="modalAnswerText" class="text-lg sm:text-xl font-bold text-white break-keep">
               목성
             </p>
           </div>
@@ -1478,7 +1498,7 @@
             if (tile.type === 'goal') {
               handlePlayerReachedGoal(activePlayer, true);
             } else {
-              openTileEventModal(activePlayer, tile);
+              openTileEventModal(activePlayer, tile, data.activeEvent);
             }
           }
         } else {
@@ -1977,10 +1997,10 @@
         return;
       }
 
-      openTileEventModal(player, tile);
+      openTileEventModal(player, tile, null);
     }
 
-    function openTileEventModal(player, tile) {
+    function openTileEventModal(player, tile, eventMeta = null) {
       const modal = document.getElementById('tileModal');
       const headerBg = document.getElementById('modalHeaderBg');
       const tileBadge = document.getElementById('modalTileBadge');
@@ -1990,6 +2010,11 @@
       const modalTitle = document.getElementById('modalTitle');
       const modalSubDesc = document.getElementById('modalSubDesc');
       const answerSection = document.getElementById('answerSection');
+      const submittedAnswerCard = document.getElementById('submittedAnswerCard');
+      const submittedAnswerText = document.getElementById('submittedAnswerText');
+      const studentInputSection = document.getElementById('studentInputSection');
+      const studentAnswerInput = document.getElementById('studentAnswerInput');
+      const hostAnswerControl = document.getElementById('hostAnswerControl');
       const answerBox = document.getElementById('answerBox');
       const modalAnswerText = document.getElementById('modalAnswerText');
       const modalActions = document.getElementById('modalActions');
@@ -1999,10 +2024,17 @@
       modalIcon.textContent = tile.icon;
       modalTitle.textContent = tile.title;
       modalSubDesc.textContent = tile.text;
+
+      // Reset sub-sections
+      submittedAnswerCard.classList.add('hidden');
+      studentInputSection.classList.add('hidden');
+      hostAnswerControl.classList.add('hidden');
       answerBox.classList.add('hidden');
       modalActions.innerHTML = '';
 
-      const canAct = state.mode === 'local' || state.role === 'host' || player.uid === CLIENT_UID;
+      const isHostOrLocal = state.mode === 'local' || state.role === 'host';
+      const isTargetStudent = state.mode === 'multiplayer' && state.role === 'player' && player.uid === CLIENT_UID;
+      const canActNonQuiz = isHostOrLocal || isTargetStudent;
 
       if (tile.type === 'quiz' || tile.type === 'bonus_quiz') {
         headerBg.className = 'px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-between';
@@ -2010,25 +2042,59 @@
         answerSection.classList.remove('hidden');
         modalAnswerText.textContent = tile.answer;
 
-        if (!canAct) {
-          modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-amber-300">⏳ [${player.name}] 탐험가가 퀴즈에 답하고 있습니다...</div>`;
+        const submittedAns = eventMeta && eventMeta.submittedAnswer ? eventMeta.submittedAnswer : '';
+        const answerRevealed = Boolean(eventMeta && eventMeta.answerRevealed);
+
+        if (submittedAns) {
+          submittedAnswerCard.classList.remove('hidden');
+          submittedAnswerText.textContent = `"${submittedAns}"`;
+        }
+
+        if (answerRevealed) {
+          answerBox.classList.remove('hidden');
+        }
+
+        // 1) Student View (Never shows hint/answer toggle; only input form or waiting status)
+        if (state.mode === 'multiplayer' && state.role === 'player') {
+          if (isTargetStudent && !submittedAns && !answerRevealed) {
+            studentInputSection.classList.remove('hidden');
+            if (document.activeElement !== studentAnswerInput) {
+              studentAnswerInput.value = '';
+            }
+            modalActions.innerHTML = `<div class="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 text-center text-xs text-slate-300">답변을 제출하면 강사가 정답을 공개하고 자리를 이동시켜 줍니다.</div>`;
+          } else {
+            const waitText = submittedAns
+              ? (answerRevealed
+                  ? '👑 강사가 정답을 공개했습니다! 곧 자리 이동이 진행됩니다.'
+                  : '📨 답변 제출 완료! 강사가 정답을 공개할 때까지 기다려 주세요.')
+              : `⏳ [${player.name}] 탐험가가 답변을 작성 중입니다...`;
+            modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-amber-300">${waitText}</div>`;
+          }
+
           modal.classList.remove('hidden');
           modal.classList.add('flex');
           return;
         }
 
-        // Correct Button
+        // 2) Host / Local Instructor View (Can reveal answer + judge Correct/Wrong to move token)
+        hostAnswerControl.classList.remove('hidden');
+        const toggleBtn = document.getElementById('toggleAnswerBtn');
+        toggleBtn.innerHTML = answerRevealed
+          ? '<span>✅ 정답이 모두에게 공개되었습니다</span>'
+          : '<span>👑 [강사 전용] 정답 공개하기 (학생 화면에도 공개됨)</span>';
+
+        // Correct Button (Moves forward or confirms spot)
         const correctBtn = document.createElement('button');
         correctBtn.type = 'button';
         correctBtn.className = 'flex-1 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-jua text-lg sm:text-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition cursor-pointer';
         correctBtn.textContent = tile.type === 'bonus_quiz'
-          ? '⭕ 정답! (+3칸 앞으로)'
-          : '⭕ 정답 (자리 유지)';
+          ? '⭕ 정답 인정 (+3칸 이동)'
+          : '⭕ 정답 인정 (자리 확정)';
 
         correctBtn.addEventListener('click', async () => {
           closeTileModal();
           AudioFX.correct();
-          let resultLog = `⭕ [${player.name}] 퀴즈 정답! ${tile.code}번 칸에 안착했습니다.`;
+          let resultLog = `⭕ [${player.name}] 정답 인정! ${tile.code}번 칸에 안착했습니다.`;
           if (tile.type === 'bonus_quiz') {
             resultLog = `🎉 [${player.name}] 보너스 퀴즈 정답! 3칸 앞으로 전진합니다!`;
             logStatus(resultLog);
@@ -2051,7 +2117,7 @@
           await advanceTurn();
         });
 
-        // Wrong Button
+        // Wrong Button (Returns to original tile)
         const wrongBtn = document.createElement('button');
         wrongBtn.type = 'button';
         wrongBtn.className = 'flex-1 py-3.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-jua text-lg sm:text-xl shadow-lg shadow-rose-600/25 active:scale-95 transition cursor-pointer';
@@ -2089,7 +2155,7 @@
         answerSection.classList.add('hidden');
         AudioFX.boost();
 
-        if (!canAct) {
+        if (!canActNonQuiz) {
           modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-emerald-300">⚡ [${player.name}] 탐험가가 보너스 이동 중입니다...</div>`;
           modal.classList.remove('hidden');
           modal.classList.add('flex');
@@ -2124,7 +2190,7 @@
                 activeEvent: { tileIndex: player.position, playerUid: player.uid }
               });
             }
-            openTileEventModal(player, landedTile);
+            openTileEventModal(player, landedTile, null);
           } else {
             await syncClearActiveEvent(moveMsg);
             await advanceTurn();
@@ -2140,7 +2206,7 @@
         AudioFX.wrong();
         player.skipNext = true;
 
-        if (!canAct) {
+        if (!canActNonQuiz) {
           modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-rose-300">⏸️ [${player.name}] 탐험가 확인 대기 중...</div>`;
           modal.classList.remove('hidden');
           modal.classList.add('flex');
@@ -2174,7 +2240,7 @@
         answerSection.classList.add('hidden');
         AudioFX.correct();
 
-        if (!canAct) {
+        if (!canActNonQuiz) {
           modalActions.innerHTML = `<div class="w-full py-3 px-4 rounded-2xl bg-slate-800 border border-slate-700 text-center text-sm font-bold text-sky-300">✨ [${player.name}] 탐험가 확인 대기 중...</div>`;
           modal.classList.remove('hidden');
           modal.classList.add('flex');
@@ -2210,7 +2276,7 @@
       }
     }
 
-    // Preview modal when clicking any board tile manually
+    // Preview modal when clicking any board tile manually (No hints shown to students!)
     function openTilePreviewModal(tile) {
       if (state.isAnimating) return;
       const modal = document.getElementById('tileModal');
@@ -2222,6 +2288,9 @@
       const modalTitle = document.getElementById('modalTitle');
       const modalSubDesc = document.getElementById('modalSubDesc');
       const answerSection = document.getElementById('answerSection');
+      const submittedAnswerCard = document.getElementById('submittedAnswerCard');
+      const studentInputSection = document.getElementById('studentInputSection');
+      const hostAnswerControl = document.getElementById('hostAnswerControl');
       const answerBox = document.getElementById('answerBox');
       const modalAnswerText = document.getElementById('modalAnswerText');
       const modalActions = document.getElementById('modalActions');
@@ -2233,13 +2302,20 @@
       modalIcon.textContent = tile.icon;
       modalTitle.textContent = tile.title;
       modalSubDesc.textContent = tile.text;
+
+      submittedAnswerCard.classList.add('hidden');
+      studentInputSection.classList.add('hidden');
       answerBox.classList.add('hidden');
 
-      if (tile.answer) {
+      const isHostOrLocal = state.mode === 'local' || state.role === 'host';
+      if (tile.answer && isHostOrLocal) {
         answerSection.classList.remove('hidden');
+        hostAnswerControl.classList.remove('hidden');
+        document.getElementById('toggleAnswerBtn').innerHTML = '<span>👑 [강사 전용] 정답 확인하기</span>';
         modalAnswerText.textContent = tile.answer;
       } else {
         answerSection.classList.add('hidden');
+        hostAnswerControl.classList.add('hidden');
       }
 
       modalActions.innerHTML = '';
@@ -2260,8 +2336,41 @@
       modal.classList.remove('flex');
     }
 
-    document.getElementById('toggleAnswerBtn').addEventListener('click', () => {
-      document.getElementById('answerBox').classList.toggle('hidden');
+    // Student submits answer -> syncs to Host & all screens
+    document.getElementById('submitStudentAnswerBtn').addEventListener('click', async () => {
+      const inputEl = document.getElementById('studentAnswerInput');
+      const ans = inputEl.value.trim();
+      if (!ans) {
+        inputEl.focus();
+        return;
+      }
+      const currentPlayer = state.players[state.currentTurnIndex];
+      if (!currentPlayer) return;
+
+      AudioFX.step();
+      if (state.mode === 'multiplayer' && fbDb && currentUser && state.roomCode) {
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          'activeEvent.submittedAnswer': ans,
+          statusLog: `📨 [${currentPlayer.name}] 탐험가가 답변을 제출했습니다! 강사님이 정답을 공개해 주세요.`
+        });
+      }
+    });
+
+    // Instructor reveals answer to everyone
+    document.getElementById('toggleAnswerBtn').addEventListener('click', async () => {
+      const answerBox = document.getElementById('answerBox');
+      const willShow = answerBox.classList.contains('hidden');
+      answerBox.classList.toggle('hidden');
+
+      if (state.mode === 'multiplayer' && state.role === 'host' && fbDb && currentUser && state.roomCode) {
+        const currentPlayer = state.players[state.currentTurnIndex];
+        await updateDoc(getRoomDocRef(state.roomCode), {
+          'activeEvent.answerRevealed': willShow,
+          statusLog: willShow
+            ? `💡 강사님이 [${currentPlayer ? currentPlayer.name : '탐험가'}] 문제의 정답을 공개했습니다!`
+            : state.statusLog
+        });
+      }
     });
 
     // 10. 다음 플레이어로 턴 넘기기
